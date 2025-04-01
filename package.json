@@ -1,0 +1,18 @@
+{
+  "name": "bot",
+  "version": "1.0.0",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "esbuild src/app.ts --bundle --platform=node --outfile=dist/app.js",
+    "start": "cross-env NODE_ENV=production node dist/app.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "supertrend": "^1.0.1"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3",
+    "esbuild": "^0.25.2",
+    "typescript": "^5.8.2"
+  }
+}
