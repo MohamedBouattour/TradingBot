@@ -5,14 +5,13 @@ import { SuperTrendStrategy } from "./strategies/supertrend/supertrend-strategy"
 
 const marketService = new MarketService("BTCUSDT", "5m", 100);
 const strategyManager = new StrategyManager(new SuperTrendStrategy());
-import * as fs from "fs";
 
-// Create log file stream
+import * as fs from "fs";
 const logStream = fs.createWriteStream("./output.log", { flags: "a" });
 
 function log(...messages: string[]) {
-  logStream.write(`${new Date().toISOString()} - ${messages}\n`); // Write to file
-  process.stdout.write(`${messages}\n`); // Optional: still print to the console
+  logStream.write(`${new Date().toISOString()} - ${messages}\n`);
+  process.stdout.write(`${messages}\n`);
 }
 
 async function runTradingBot() {
