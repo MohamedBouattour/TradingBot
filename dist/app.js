@@ -10572,7 +10572,7 @@ function fixResponseChunkedTransferBadEnding(request, errorCallback) {
 var MarketService = class {
   constructor(market, tickInterval, limit) {
     this.market = market;
-    this.tickInterval = tickInterval;
+    this.tickInterval = tickInterval.getInterval();
     this.limit = limit;
   }
   async fetchCandlestickData() {
@@ -10617,9 +10617,62 @@ var SuperTrendStrategy = class {
 
 // src/app.ts
 var fs2 = __toESM(require("fs"));
-var marketService = new MarketService("BTCUSDT", "5m", 100);
-var strategyManager = new StrategyManager(new SuperTrendStrategy());
+
+// src/models/tick-interval.model.ts
+var TickInterval = class {
+  constructor(interval2) {
+    this.interval = interval2;
+  }
+  getInterval() {
+    return this.interval.toString();
+  }
+  getTickIntervalInMs() {
+    return convertIntervalToMS(this.interval);
+  }
+};
+function convertIntervalToMS(interval2) {
+  const minute = 60 * 1e3;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+  const week = 7 * day;
+  const month = 30 * day;
+  switch (interval2) {
+    case "1m" /* 1m */:
+      return minute;
+    case "5m" /* 5m */:
+      return 5 * minute;
+    case "15m" /* 15m */:
+      return 15 * minute;
+    case "30m" /* 30m */:
+      return 30 * minute;
+    case "1h" /* 1h */:
+      return hour;
+    case "2h" /* 2h */:
+      return 2 * hour;
+    case "4h" /* 4h */:
+      return 4 * hour;
+    case "6h" /* 6h */:
+      return 6 * hour;
+    case "8h" /* 8h */:
+      return 8 * hour;
+    case "12h" /* 12h */:
+      return 12 * hour;
+    case "1d" /* 1d */:
+      return day;
+    case "3d" /* 3d */:
+      return 3 * day;
+    case "1w" /* 1w */:
+      return week;
+    case "1M" /* 1M */:
+      return month;
+  }
+}
+
+// src/app.ts
 var logStream = fs2.createWriteStream("./output.log", { flags: "a" });
+var interval = new TickInterval("5m" /* 5m */);
+var marketService = new MarketService("BTCUSDT", interval, 100);
+var strategyManager = new StrategyManager(new SuperTrendStrategy());
 function log(...messages) {
   logStream.write(`${(/* @__PURE__ */ new Date()).toISOString()} - ${messages}
 `);
@@ -10640,7 +10693,7 @@ async function runTradingBot() {
   }
 }
 runTradingBot();
-setInterval(runTradingBot, 1e3 * 60 * 5);
+setInterval(runTradingBot, interval.getTickIntervalInMs());
 /*! Bundled license information:
 
 web-streams-polyfill/dist/ponyfill.es2018.js:

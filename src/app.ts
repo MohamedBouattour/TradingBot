@@ -3,11 +3,14 @@ import { MarketService } from "./services/market.service";
 import { StrategyManager } from "./strategies/strategy-manager";
 import { SuperTrendStrategy } from "./strategies/supertrend/supertrend-strategy";
 
-const marketService = new MarketService("BTCUSDT", "5m", 100);
-const strategyManager = new StrategyManager(new SuperTrendStrategy());
-
 import * as fs from "fs";
+import { Interval, TickInterval } from "./models/tick-interval.model";
 const logStream = fs.createWriteStream("./output.log", { flags: "a" });
+
+const interval = new TickInterval(Interval["5m"]);
+
+const marketService = new MarketService("BTCUSDT", interval, 100);
+const strategyManager = new StrategyManager(new SuperTrendStrategy());
 
 function log(...messages: string[]) {
   logStream.write(`${new Date().toISOString()} - ${messages}\n`);
@@ -32,4 +35,4 @@ async function runTradingBot() {
 }
 
 runTradingBot();
-setInterval(runTradingBot, 1000 * 60 * 5); // Runs every 5 minute
+setInterval(runTradingBot, interval.getTickIntervalInMs()); // Runs every 5 minute
