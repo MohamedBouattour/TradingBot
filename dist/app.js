@@ -10611,33 +10611,33 @@ var SuperTrendStrategy = class {
     } else if (previousCandle.close > previousSuperTrend && lastCandle.close < lastSuperTrend) {
       return "SELL";
     }
-    return "NO TRADE";
+    return "";
   }
 };
 
 // src/app.ts
 var fs2 = __toESM(require("fs"));
-var marketService = new MarketService("BTCUSDT", "15m", 100);
+var marketService = new MarketService("BTCUSDT", "5m", 100);
 var strategyManager = new StrategyManager(new SuperTrendStrategy());
 var logStream = fs2.createWriteStream("./output.log", { flags: "a" });
-if (process.env.NODE_ENV === "production") {
-  console.log = function(message) {
-    logStream.write(`${(/* @__PURE__ */ new Date()).toISOString()} - ${message}
+function log(...messages) {
+  logStream.write(`${(/* @__PURE__ */ new Date()).toISOString()} - ${messages}
 `);
-    process.stdout.write(`${message}
+  process.stdout.write(`${messages}
 `);
-  };
 }
 async function runTradingBot() {
   const candlestick = await marketService.fetchCandlestickData();
-  console.log("Latest Candle:", candlestick[candlestick.length - 1]);
   const superTrends = (0, import_supertrend.supertrend)({
     initialArray: candlestick,
     multiplier: 3,
     period: 10
   });
   const decision = strategyManager.executeStrategy(candlestick, superTrends);
-  console.log(`Trade Decision: ${decision}`);
+  if (decision.length) {
+    log(`Latest Candle:${JSON.stringify(candlestick[candlestick.length - 1])}`);
+    log(`Trade Decision: ${decision}`);
+  }
 }
 runTradingBot();
 setInterval(runTradingBot, 1e3 * 60 * 5);

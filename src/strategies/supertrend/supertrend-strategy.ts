@@ -20,6 +20,6 @@ export class SuperTrendStrategy implements TradingStrategy {
     ) {
       return "SELL";
     }
-    return "NO TRADE";
+    return "";
   }
 }
