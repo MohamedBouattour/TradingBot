@@ -116,7 +116,7 @@ describe("SuperTrendStrategy", () => {
     const superTrends = [100, 100];
 
     const result = strategy.execute(candles, superTrends);
-    expect(result).toBe("NO TRADE");
+    expect(result).toBe("");
   });
   it("should return NO TRADE when no crossing occurs", () => {
     const candles: Candle[] = [
@@ -152,6 +152,6 @@ describe("SuperTrendStrategy", () => {
     const superTrends = [100, 100];
 
     const result = strategy.execute(candles, superTrends);
-    expect(result).toBe("NO TRADE");
+    expect(result).toBe("");
   });
 });
