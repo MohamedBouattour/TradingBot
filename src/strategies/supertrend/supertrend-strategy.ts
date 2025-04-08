@@ -1,4 +1,5 @@
 import { Candle } from "../../models/candle.model";
+import { Operation } from "../../models/operation.enum";
 import { TradingStrategy } from "../../models/trading-strategy.model";
 
 export class SuperTrendStrategy implements TradingStrategy {
@@ -13,12 +14,12 @@ export class SuperTrendStrategy implements TradingStrategy {
       previousCandle.close < previousSuperTrend &&
       lastCandle.close > lastSuperTrend
     ) {
-      return "BUY";
+      return Operation.BUY;
     } else if (
       previousCandle.close > previousSuperTrend &&
       lastCandle.close < lastSuperTrend
     ) {
-      return "SELL";
+      return Operation.SELL;
     }
     return "";
   }

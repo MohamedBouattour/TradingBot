@@ -15,15 +15,24 @@ export class MarketService {
   }
 
   async fetchCandlestickData(): Promise<Candle[]> {
-    const response = await fetch(
-      `https://api.binance.com/api/v1/klines?symbol=${this.market}&interval=${
-        this.tickInterval
-      }&limit=${this.limit + 1}`
-    );
-    const rawData = (await response.json()) as string[][];
-    return convertStringToNumbers(rawData).filter(
-      (candle: Candle) =>
-        candle.closeTime > Date.now() - 1000 * 60 * 60 * 24 * 7
-    );
+    let trying = 0;
+    while (true || trying <= 3) {
+      trying++;
+      try {
+        const response = await fetch(
+          `https://api.binance.com/api/v1/klines?symbol=${
+            this.market
+          }&interval=${this.tickInterval}&limit=${this.limit + 1}`
+        );
+        const rawData = (await response.json()) as string[][];
+        return convertStringToNumbers(rawData).filter(
+          (candle: Candle) =>
+            candle.closeTime > Date.now() - 1000 * 60 * 60 * 24 * 7
+        );
+      } catch (error: any) {
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+        continue;
+      }
+    }
   }
 }

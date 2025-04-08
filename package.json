@@ -12,6 +12,8 @@
     "test": "npx jest"
   },
   "dependencies": {
+    "dotenv": "^16.4.7",
+    "node-binance-api": "^1.0.1",
     "node-fetch": "^3.3.2",
     "supertrend": "^1.0.1"
   },
