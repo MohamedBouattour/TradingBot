@@ -22,6 +22,7 @@ async function runTradingBot() {
     period: 10,
   });
   const decision = strategyManager.executeStrategy(candlestick, superTrends);
+  console.log(decision, candlestick[candlestick.length - 1]);
   if (decision.length) {
     //const splicedData = candlestick.slice(0, -5)
     LogService.log(

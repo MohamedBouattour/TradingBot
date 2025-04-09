@@ -14,30 +14,6 @@ import { LogService } from "./log.service";
  */
 export class TradeService {
   /**
-   * Places a buy order and optionally sets a take profit order
-   * @param asset - The trading pair symbol
-   * @param quantity - The amount to buy
-   * @param tpPrice - The take profit price
-   * @param withTp - Whether to place a take profit order
-   * @returns Promise<Order> - The executed buy order
-   * @throws Error if the order is not filled
-   */
-  private async buyAndSetTakeProfit(
-    asset: string,
-    quantity: number,
-    tpPrice: number,
-    withTp = false
-  ): Promise<Order> {
-    const order: Order = await BinanceApiService.buy(asset, quantity);
-    if (withTp && order.status === "FILLED") {
-      await BinanceApiService.sell(asset, quantity, tpPrice);
-    } else {
-      throw new Error("Order not filled");
-    }
-    return order;
-  }
-
-  /**
    * Places a buy order with take profit based on configured parameters
    * Uses BASE_CURRENCY balance and TARGET_ROI for calculations
    * @throws Error if the trade execution fails
@@ -56,7 +32,11 @@ export class TradeService {
       } @${new Date().toISOString()}`
     );
     try {
-      const order = await buyAndSetTakeProfit(PAIR, quantity, tpPrice);
+      const order = await BinanceApiService.buyAndSetTakeProfit(
+        PAIR,
+        quantity,
+        tpPrice
+      );
       LogService.log(`Order placed: ${JSON.stringify(order)}`);
       LogService.log(`Take profit set at: ${tpPrice}`);
     } catch (error: any) {
@@ -70,6 +50,13 @@ export class TradeService {
    * @throws Error if the trade execution fails
    */
   public static async handleSell() {
+    // cancel all pendig orders
+    const openOrders = await BinanceApiService.getOpenOrders(PAIR);
+    openOrders.forEach(async (order: Order) => {
+      await BinanceApiService.cancelOrder(PAIR, order.orderId);
+    });
+
+    // sell all assets
     const quantity =
       (await BinanceApiService.getBalance()).balances.find(
         (balance: { asset: string }) => balance.asset === ASSET
@@ -85,7 +72,4 @@ export class TradeService {
       LogService.log(`Error executing trade: ${error.message}`);
     }
   }
-}
-function buyAndSetTakeProfit(PAIR: string, quantity: number, tpPrice: number) {
-  throw new Error("Function not implemented.");
 }

@@ -1,6 +1,6 @@
 import * as dotenv from "dotenv";
 import Binance from "node-binance-api";
-import { Order } from "node-binance-api/dist/types";
+import { CancelOrder, Order } from "node-binance-api/dist/types";
 dotenv.config();
 
 export class BinanceApiService {
@@ -8,7 +8,6 @@ export class BinanceApiService {
     APIKEY: process.env.APIKEY,
     APISECRET: process.env.APISECRET,
     family: 4,
-    test: true,
   });
 
   /**
@@ -27,14 +26,14 @@ export class BinanceApiService {
    * @returns Promise containing the order details
    */
   public static buy(
-    asset: string,
+    symbol: string,
     quantity: number,
     price?: number
   ): Promise<Order> {
     if (price) {
-      return BinanceApiService.binance.buy(asset, quantity, price);
+      return BinanceApiService.binance.buy(symbol, quantity, price);
     }
-    return BinanceApiService.binance.marketBuy(asset, quantity);
+    return BinanceApiService.binance.marketBuy(symbol, quantity);
   }
   /**
    * Place a sell order for an asset
@@ -44,21 +43,55 @@ export class BinanceApiService {
    * @returns Promise containing the order details
    */
   public static sell(
-    asset: string,
+    symbol: string,
     quantity: number,
     price?: number
   ): Promise<Order> {
     if (price) {
-      return BinanceApiService.binance.sell(asset, quantity, price);
+      return BinanceApiService.binance.sell(symbol, quantity, price);
     }
-    return BinanceApiService.binance.marketSell(asset, quantity);
+    return BinanceApiService.binance.marketSell(symbol, quantity);
   }
   /**
    * Get current market price for an asset
    * @param asset The trading pair symbol (e.g. 'BTCUSDT')
    * @returns Promise containing the current price as a string
    */
-  public static async getMarketPrice(asset: string): Promise<number> {
-    return (await BinanceApiService.binance.prices())[asset];
+  public static async getMarketPrice(symbol: string): Promise<number> {
+    return (await BinanceApiService.binance.prices())[symbol];
+  }
+
+  public static async getOpenOrders(symbol?: string): Promise<Order[]> {
+    return BinanceApiService.binance.openOrders(symbol);
+  }
+
+  public static async cancelOrder(
+    symbol: string,
+    orderId: string | number
+  ): Promise<CancelOrder> {
+    return BinanceApiService.binance.cancel(symbol, orderId);
+  }
+
+  /**
+   * Places a buy order and optionally sets a take profit order
+   * @param asset - The trading pair symbol
+   * @param quantity - The amount to buy
+   * @param tpPrice - The take profit price
+   * @param withTp - Whether to place a take profit order
+   * @returns Promise<Order> - The executed buy order
+   * @throws Error if the order is not filled
+   */
+  public static async buyAndSetTakeProfit(
+    asset: string,
+    quantity: number,
+    tpPrice: number
+  ): Promise<Order> {
+    const order: Order = await BinanceApiService.buy(asset, quantity);
+    if (order.status === "FILLED") {
+      await BinanceApiService.sell(asset, quantity, tpPrice);
+    } else {
+      throw new Error("Order not filled");
+    }
+    return order;
   }
 }

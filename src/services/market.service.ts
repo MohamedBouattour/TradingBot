@@ -26,8 +26,7 @@ export class MarketService {
         );
         const rawData = (await response.json()) as string[][];
         return convertStringToNumbers(rawData).filter(
-          (candle: Candle) =>
-            candle.closeTime > Date.now() - 1000 * 60 * 60 * 24 * 7
+          (candle: Candle) => new Date(candle.closeTime).getTime() < Date.now()
         );
       } catch (error: any) {
         await new Promise((resolve) => setTimeout(resolve, 5000));

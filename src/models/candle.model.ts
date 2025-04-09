@@ -5,7 +5,7 @@ export interface Candle {
   low: number;
   close: number;
   volume: number;
-  closeTime: number;
+  closeTime: string;
   assetVolume: number;
   trades: number;
   buyBaseVolume: number;

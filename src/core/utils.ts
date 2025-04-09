@@ -24,7 +24,7 @@ export function convertStringToNumbers(candles: string[][]): Candle[] {
       low: Number(low),
       close: Number(close),
       volume: Number(volume),
-      closeTime: Number(closeTime),
+      closeTime: new Date(Number(closeTime)).toISOString(),
       assetVolume: Number(assetVolume),
       trades: Number(trades),
       buyBaseVolume: Number(buyBaseVolume),
