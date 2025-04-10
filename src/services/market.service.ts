@@ -1,5 +1,5 @@
 import { Candle } from "../models/candle.model";
-import { convertStringToNumbers } from "../core/utils";
+import { convertStringToNumbers, delay } from "../core/utils";
 import fetch from "node-fetch";
 import { TickInterval } from "../models/tick-interval.model";
 
@@ -25,11 +25,9 @@ export class MarketService {
           }&interval=${this.tickInterval}&limit=${this.limit + 1}`
         );
         const rawData = (await response.json()) as string[][];
-        return convertStringToNumbers(rawData).filter(
-          (candle: Candle) => new Date(candle.closeTime).getTime() < Date.now()
-        );
+        return convertStringToNumbers(rawData);
       } catch (error: any) {
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        await delay(5000);
         continue;
       }
     }

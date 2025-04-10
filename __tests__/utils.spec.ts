@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { convertStringToNumbers } from "../src/core/utils";
+import { convertStringToNumbers, delay } from "../src/core/utils";
 
 describe("convertStringToNumbers", () => {
   it("should convert array of string arrays to Candle objects", () => {
@@ -44,5 +44,15 @@ describe("convertStringToNumbers", () => {
   it("should handle empty array", () => {
     const result = convertStringToNumbers([]);
     expect(result).toEqual([]);
+  });
+});
+
+describe("delay", () => {
+  it("should wait for specified milliseconds", async () => {
+    const start = Date.now();
+    await delay(100);
+    const end = Date.now();
+    const elapsed = end - start;
+    expect(elapsed).toBeGreaterThanOrEqual(100);
   });
 });
