@@ -9,7 +9,7 @@
     "start:prod": "cross-env NODE_ENV=production node dist/app.js",
     "serve": "nodemon dist/app.js",
     "dev": "npm run build:watch & npm run serve",
-    "test": "npx jest"
+    "test": "npx jest --coverage"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
@@ -18,13 +18,23 @@
     "supertrend": "^1.0.1"
   },
   "devDependencies": {
+    "@babel/preset-env": "^7.26.9",
+    "@babel/preset-typescript": "^7.27.0",
     "@types/jest": "^29.5.14",
+    "babel-jest": "^29.7.0",
     "cross-env": "^7.0.3",
     "esbuild": "^0.25.2",
+    "husky": "^9.1.7",
     "jest": "^29.7.0",
     "jest-environment-node": "^29.7.0",
+    "lint-staged": "^15.5.0",
     "nodemon": "^3.1.9",
     "ts-jest": "^29.3.1",
     "typescript": "^5.8.3"
+  },
+  "lint-staged": {
+    "*.{ts}": [
+      "npm run test"
+    ]
   }
 }

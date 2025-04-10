@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { convertStringToNumbers } from "../../src/core/utils";
+import { convertStringToNumbers } from "../src/core/utils";
 
 describe("convertStringToNumbers", () => {
   it("should convert array of string arrays to Candle objects", () => {
@@ -28,7 +28,7 @@ describe("convertStringToNumbers", () => {
         low: 2.29,
         close: 2.33,
         volume: 1000,
-        closeTime: 1619827499999,
+        closeTime: "2021-05-01T00:04:59.999Z",
         assetVolume: 2300,
         trades: 150,
         buyBaseVolume: 500,

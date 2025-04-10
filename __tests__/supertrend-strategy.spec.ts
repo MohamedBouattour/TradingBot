@@ -1,5 +1,5 @@
-import { Candle } from "../../src/models/candle.model";
-import { SuperTrendStrategy } from "../../src/strategies/supertrend/supertrend-strategy";
+import { Candle } from "../src/models/candle.model";
+import { SuperTrendStrategy } from "../src/strategies/supertrend/supertrend-strategy";
 
 describe("SuperTrendStrategy", () => {
   let strategy: SuperTrendStrategy;
