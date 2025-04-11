@@ -55,7 +55,10 @@ async function main() {
   LogService.log("Starting Trading Bot @ " + new Date().toLocaleDateString());
   candlesticks = await marketService.fetchCandlestickData();
   runTradingBot(candlesticks);
-  setInterval(runTradingBot, interval.getTickIntervalInMs());
+  setInterval(async () => {
+    candlesticks = await marketService.fetchCandlestickData();
+    runTradingBot(candlesticks);
+  }, interval.getTickIntervalInMs());
 }
 
 main();
