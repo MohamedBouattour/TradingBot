@@ -94,4 +94,12 @@ export class BinanceApiService {
     }
     return order;
   }
+
+  /**
+   * Get the current server time from Binance
+   * @returns Promise containing the server time in milliseconds
+   */
+  public static async getServerTime(): Promise<{ serverTime: number }> {
+    return BinanceApiService.binance.time();
+  }
 }
