@@ -8,6 +8,8 @@ export class BinanceApiService {
     APIKEY: process.env.APIKEY,
     APISECRET: process.env.APISECRET,
     family: 4,
+    useServerTime: true,
+    recvWindow: 10000,
   });
 
   /**

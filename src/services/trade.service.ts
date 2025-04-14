@@ -20,9 +20,11 @@ export class TradeService {
    */
   public static async handleBuy() {
     const balance =
-      (await BinanceApiService.getBalance()).balances.find(
-        (balance: { asset: string }) => balance.asset === BASE_CURRENCY
-      ) * BALANCE_IN_POSTIOTION;
+      (await BinanceApiService.getBalance())[BASE_CURRENCY].available *
+      BALANCE_IN_POSTIOTION;
+    if (!balance || balance <= 10) {
+      return;
+    }
     const marketPrice = await BinanceApiService.getMarketPrice(PAIR);
     const quantity = balance / marketPrice;
     const tpPrice = marketPrice * TARGET_ROI;
