@@ -5,13 +5,20 @@ dotenv.config();
 
 export class BinanceApiService {
   private static binance = new Binance().options({
-    APIKEY: process.env.APIKEY,
-    APISECRET: process.env.APISECRET,
+    APIKEY:
+      process.env.APIKEY ||
+      (() => {
+        throw new Error("APIKEY not found");
+      })(),
+    APISECRET:
+      process.env.APISECRET ||
+      (() => {
+        throw new Error("APISECRET not found");
+      })(),
     family: 4,
     useServerTime: true,
     recvWindow: 10000,
   });
-
   /**
    * Get account balance for all assets
    * @returns Promise containing account balances
