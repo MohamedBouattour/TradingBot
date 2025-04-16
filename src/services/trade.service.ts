@@ -60,10 +60,12 @@ export class TradeService {
 
     // sell all assets
     const quantity =
-      (await BinanceApiService.getBalance()).balances.find(
-        (balance: { asset: string }) => balance.asset === ASSET
-      ) * BALANCE_IN_POSTIOTION;
+      (await BinanceApiService.getBalance())[ASSET].available *
+      BALANCE_IN_POSTIOTION;
     const marketPrice = await BinanceApiService.getMarketPrice(PAIR);
+    if (!quantity || !marketPrice || quantity * marketPrice <= 10) {
+      return;
+    }
     LogService.log(
       `Setting up trade for : ${PAIR} amount: ${quantity} SellPrice ${marketPrice} @${new Date().toISOString()}`
     );
