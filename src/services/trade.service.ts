@@ -23,6 +23,9 @@ export class TradeService {
       (await BinanceApiService.getBalance())[BASE_CURRENCY].available *
       BALANCE_IN_POSTIOTION;
     if (!balance || balance <= 10) {
+      LogService.log(
+        `Insiffficient balance to sell: ${PAIR} amount: ${balance} value @${new Date().toISOString()}`
+      );
       return;
     }
     const marketPrice = await BinanceApiService.getMarketPrice(PAIR);
@@ -64,6 +67,11 @@ export class TradeService {
       BALANCE_IN_POSTIOTION;
     const marketPrice = await BinanceApiService.getMarketPrice(PAIR);
     if (!quantity || !marketPrice || quantity * marketPrice <= 10) {
+      LogService.log(
+        `Insiffficient balance to sell: ${PAIR} quantity: ${quantity} value ${
+          quantity * marketPrice
+        } @${new Date().toISOString()}`
+      );
       return;
     }
     LogService.log(
