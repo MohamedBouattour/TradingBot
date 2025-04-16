@@ -24,13 +24,13 @@ export class TradeService {
       BALANCE_IN_POSTIOTION;
     if (!balance || balance <= 10) {
       LogService.log(
-        `Insiffficient balance to sell: ${PAIR} amount: ${balance} value @${new Date().toISOString()}`
+        `Insiffficient balance to buy: ${PAIR} amount: ${balance} value @${new Date().toISOString()}`
       );
       return;
     }
     const marketPrice = await BinanceApiService.getMarketPrice(PAIR);
-    const quantity = balance / marketPrice;
-    const tpPrice = marketPrice * TARGET_ROI;
+    const quantity = parseFloat((balance / marketPrice).toFixed(5));
+    const tpPrice = parseFloat((marketPrice * TARGET_ROI).toFixed(2));
     LogService.log(
       `Setting up trade for : ${PAIR} amount: ${quantity} BuyPrice ${marketPrice} SellPrice ${tpPrice} roi:${
         tpPrice / marketPrice
@@ -62,9 +62,12 @@ export class TradeService {
     });
 
     // sell all assets
-    const quantity =
-      (await BinanceApiService.getBalance())[ASSET].available *
-      BALANCE_IN_POSTIOTION;
+    const quantity = parseFloat(
+      (
+        (await BinanceApiService.getBalance())[ASSET].available *
+        BALANCE_IN_POSTIOTION
+      ).toFixed(5)
+    );
     const marketPrice = await BinanceApiService.getMarketPrice(PAIR);
     if (!quantity || !marketPrice || quantity * marketPrice <= 10) {
       LogService.log(

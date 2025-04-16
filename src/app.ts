@@ -25,7 +25,9 @@ async function runTradingBot(candlestick: Candle[]) {
   });
   const decision = strategyManager.executeStrategy(candlestick, superTrends);
   LogService.log(
-    `${decision || "No Trade"} :${JSON.stringify(
+    `${new Date(
+      (await BinanceApiService.getServerTime()).serverTime
+    ).toISOString()} ${decision || "No Trade"} :${JSON.stringify(
       candlestick[candlestick.length - 1]
     )}`
   );
@@ -39,9 +41,15 @@ async function runTradingBot(candlestick: Candle[]) {
 }
 
 /* async function main() {
-  LogService.log("Starting Trading Bot @ " + new Date().toLocaleDateString());
+  LogService.log(
+    "Starting Trading Bot @" +
+      new Date().toLocaleDateString() +
+      " " +
+      interval.getTickIntervalInMs()
+  );
+
   const candlesticks = await marketService.fetchCandlestickData();
-  runTradingBot(candlesticks.slice(0, -21));
+  runTradingBot(candlesticks.slice(0, -3));
 } */
 
 async function main() {
