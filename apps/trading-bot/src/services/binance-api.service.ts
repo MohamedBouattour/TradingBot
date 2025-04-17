@@ -6,12 +6,12 @@ dotenv.config();
 export class BinanceApiService {
   private static binance = new Binance().options({
     APIKEY:
-      process.env.APIKEY ||
+      process?.env?.["APIKEY"] ||
       (() => {
         throw new Error("APIKEY not found");
       })(),
     APISECRET:
-      process.env.APISECRET ||
+      process?.env?.["APISECRET"] ||
       (() => {
         throw new Error("APISECRET not found");
       })(),
