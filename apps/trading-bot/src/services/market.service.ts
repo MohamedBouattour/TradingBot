@@ -24,7 +24,7 @@ export class MarketService {
             this.market
           }&interval=${this.tickInterval}&limit=${this.limit + 1}`
         );
-        const rawData = ((await response.json()) as string[][]).slice(0, -1);
+        const rawData = ((await response.json()) as string[][]);
         return convertStringToNumbers(rawData);
       } catch (error: any) {
         await delay(5000);
