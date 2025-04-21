@@ -30,7 +30,7 @@
     "@nestjs/testing": "^11.0.20",
     "@nestjs/websockets": "^11.0.20",
     "dotenv": "^16.5.0",
-    "node-binance-api": "^1.0.1",
+    "node-binance-api": "^1.0.3",
     "node-fetch": "^3.3.2",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
