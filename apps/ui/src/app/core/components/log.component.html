@@ -1,0 +1,18 @@
+<div class="log-container">
+  @for (log of logs; track log) { @defer(on viewport) {
+  <div
+    class="log-item"
+    [ngClass]="{
+      'no-trade': log.includes('No Trade'),
+      sell: log.includes('SELL'),
+      'buy':log.includes('BUY'),
+    }"
+  >
+    {{ log }}
+  </div>
+  }@placeholder{
+  <div class="log-item">
+    <p>Loading...</p>
+  </div>
+  } }
+</div>

@@ -5,13 +5,9 @@ import { LogStreamingService } from "./log-streaming.service";
 export class LogStreamingController {
   constructor(private readonly logStreamingService: LogStreamingService) {}
 
-  @Get()
-  hello(): string {
-    return "Logs are being streamed";
-  }
-  @Get()
+  @Get("trigger-log")
   getLog(): string {
     this.logStreamingService.readLogs();
-    return "Logs are being streamed";
+    return "Log read triggered";
   }
 }

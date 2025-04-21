@@ -1,0 +1,38 @@
+.log-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 20px;
+  background-color: #f4f4f4;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+  .log-item {
+    background-color: #fff;
+    padding: 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-family: "Courier New", Courier, monospace;
+    color: #333;
+
+    white-space: normal; 
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    :hover {
+      border-left-color: #007acc;
+      transform: translateX(2px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+    }
+
+    &.buy {
+      background-color: #e8f5e9;
+    }
+
+    &.sell {
+      background-color: #ffebee;
+    }
+  }
+}
