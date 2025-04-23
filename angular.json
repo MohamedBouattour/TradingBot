@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/bot-ui",
+            "outputPath": "apps/log-streaming/static",
             "index": "apps/ui/src/index.html",
             "browser": "apps/ui/src/main.ts",
             "polyfills": [
