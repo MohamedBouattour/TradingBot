@@ -64,7 +64,7 @@ async function main() {
         (timeToCloseCurrentCandle / (1000 * 60)).toFixed(2) +
         " minutes"
     );
-    await delay(timeToCloseCurrentCandle);
+    await delay(timeToCloseCurrentCandle + 1000);
   }
   LogService.log("Starting Trading Bot @ " + new Date().toLocaleDateString());
   candlesticks = await marketService.fetchCandlestickData();
