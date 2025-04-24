@@ -27,9 +27,9 @@ async function runTradingBot(candlestick: Candle[]) {
   LogService.log(
     `${new Date(
       (await BinanceApiService.getServerTime()).serverTime
-    ).toISOString()} ${decision || "No Trade"} :${JSON.stringify(
-      candlestick[candlestick.length - 1]
-    )}`
+    ).toISOString()} ${decision || "No Trade"} :${new Date(
+      candlestick[candlestick.length - 1].closeTime
+    ).toISOString()}`
   );
   if (decision.length) {
     if (decision === Operation.BUY) {
@@ -64,7 +64,7 @@ async function main() {
         (timeToCloseCurrentCandle / (1000 * 60)).toFixed(2) +
         " minutes"
     );
-    await delay(timeToCloseCurrentCandle + 5000);
+    await delay(timeToCloseCurrentCandle);
   }
   LogService.log("Starting Trading Bot @ " + new Date().toLocaleDateString());
   candlesticks = await marketService.fetchCandlestickData();
