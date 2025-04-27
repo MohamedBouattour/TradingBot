@@ -40,18 +40,6 @@ async function runTradingBot(candlestick: Candle[]) {
   }
 }
 
-/* async function main() {
-  LogService.log(
-    "Starting Trading Bot @" +
-      new Date().toLocaleDateString() +
-      " " +
-      interval.getTickIntervalInMs()
-  );
-
-  const candlesticks = await marketService.fetchCandlestickData();
-  runTradingBot(candlesticks.slice(0, -3));
-} */
-
 async function main() {
   let candlesticks = await marketService.fetchCandlestickData();
   const serverTime = (await BinanceApiService.getServerTime()).serverTime;
@@ -72,7 +60,7 @@ async function main() {
   setInterval(async () => {
     candlesticks = await marketService.fetchCandlestickData();
     runTradingBot(candlesticks.slice(0, -1));
-  }, interval.getTickIntervalInMs());
+  }, interval.getValueInMs());
 }
 
 main();

@@ -74,11 +74,8 @@ export class BinanceApiService {
     return BinanceApiService.binance.openOrders(symbol);
   }
 
-  public static async cancelOrder(
-    symbol: string,
-    orderId: string | number
-  ): Promise<CancelOrder> {
-    return BinanceApiService.binance.cancel(symbol, orderId);
+  public static async cancelAllOrders(symbol: string): Promise<CancelOrder> {
+    return BinanceApiService.binance.cancelAllOrders(symbol);
   }
 
   /**

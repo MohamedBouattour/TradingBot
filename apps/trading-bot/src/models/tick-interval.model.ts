@@ -22,8 +22,13 @@ export class TickInterval {
   getInterval(): string {
     return this.interval.toString();
   }
-  getTickIntervalInMs(): number {
+  getValueInMs(): number {
     return convertIntervalToMS(this.interval);
+  }
+  getNextTickInterval(): TickInterval {
+    const intervals = [...Object.values(Interval)];
+    const index = intervals.findIndex((value) => value === this.interval);
+    return new TickInterval(intervals[index + 1]);
   }
 }
 
