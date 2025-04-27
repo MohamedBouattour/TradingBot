@@ -1,6 +1,7 @@
 import * as dotenv from "dotenv";
 import Binance from "node-binance-api";
 import { CancelOrder, Order } from "node-binance-api/dist/types";
+import { ASSET, BASE_CURRENCY, PAIR } from "../constants";
 dotenv.config();
 
 export class BinanceApiService {
@@ -25,6 +26,29 @@ export class BinanceApiService {
    */
   public static async getBalance(): Promise<any> {
     return await BinanceApiService.binance.balance();
+  }
+
+  /**
+   * Get asset value in usd
+   * @returns Promise containing asset value in usd
+   */
+  public static async getAssetValue(): Promise<number> {
+    const account = await BinanceApiService.binance.account();
+    const assetPrice = await BinanceApiService.getMarketPrice(PAIR);
+    const assetBalance = account.balances.find(
+      (asset) => asset.asset === ASSET
+    );
+    const assetValue =
+      (parseFloat(assetBalance!.free) + parseFloat(assetBalance!.locked)) *
+      assetPrice;
+
+    const baseCurrencyBalance = account.balances.find(
+      (asset) => asset.asset === BASE_CURRENCY
+    );
+    const baseCurrencyValue =
+      parseFloat(baseCurrencyBalance!.free) +
+      parseFloat(baseCurrencyBalance!.locked);
+    return assetValue + baseCurrencyValue;
   }
 
   /**

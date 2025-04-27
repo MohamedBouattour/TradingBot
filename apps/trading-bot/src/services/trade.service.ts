@@ -55,7 +55,7 @@ export class TradeService {
    * Uses ASSET balance for quantity calculation
    * @throws Error if the trade execution fails
    */
-  public static async handleSell() {
+  public static async handleSell(): Promise<void | Order> {
     // cancel all pendig orders
     await BinanceApiService.cancelAllOrders(PAIR);
 
@@ -79,10 +79,10 @@ export class TradeService {
       `Setting up trade for : ${PAIR} amount: ${quantity} SellPrice ${marketPrice} @${new Date().toISOString()}`
     );
     try {
-      const order = await BinanceApiService.sell(PAIR, quantity);
-      LogService.log(`Order placed: ${JSON.stringify(order)}`);
+      return await BinanceApiService.sell(PAIR, quantity);
     } catch (error: any) {
       LogService.log(`Error executing trade: ${error.message}`);
+      return;
     }
   }
 }

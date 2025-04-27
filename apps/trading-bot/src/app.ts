@@ -1,5 +1,6 @@
 import { supertrend } from "supertrend";
-import { PAIR, TIME_FRAME } from "./constants";
+import { INITIAL_BALANCE, PAIR, TIME_FRAME } from "./constants";
+import { delay } from "./core/utils";
 import { Candle } from "./models/candle.model";
 import { Operation } from "./models/operation.enum";
 import { Interval, TickInterval } from "./models/tick-interval.model";
@@ -9,7 +10,8 @@ import { MarketService } from "./services/market.service";
 import { TradeService } from "./services/trade.service";
 import { StrategyManager } from "./strategies/strategy-manager";
 import { SuperTrendStrategy } from "./strategies/supertrend/supertrend-strategy";
-import { delay } from "./core/utils";
+import * as dotenv from "dotenv";
+dotenv.config();
 
 const interval = new TickInterval(Interval[TIME_FRAME]);
 
@@ -31,9 +33,16 @@ async function runTradingBot(candlestick: Candle[]) {
       candlestick[candlestick.length - 1].closeTime
     ).toISOString()}`
   );
+  const assetValue = await BinanceApiService.getAssetValue();
+  LogService.log(
+    `Asset value: ${assetValue} RIO: ${(
+      ((assetValue - INITIAL_BALANCE) / INITIAL_BALANCE) *
+      100
+    ).toFixed(2)}%`
+  );
   if (decision.length) {
     if (decision === Operation.BUY) {
-      TradeService.handleBuy();
+      await TradeService.handleBuy();
     } else if (decision === Operation.SELL) {
       TradeService.handleSell();
     }
@@ -46,7 +55,7 @@ async function main() {
   const timeToCloseCurrentCandle =
     new Date(candlesticks[candlesticks.length - 1].closeTime).getTime() -
     serverTime;
-  if (timeToCloseCurrentCandle > 0) {
+  if (process?.env?.["MODE"] !== "DEBUG" && timeToCloseCurrentCandle > 0) {
     LogService.log(
       "Waiting for next candle to open in " +
         (timeToCloseCurrentCandle / (1000 * 60)).toFixed(2) +
