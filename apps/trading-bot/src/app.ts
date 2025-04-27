@@ -35,7 +35,7 @@ async function runTradingBot(candlestick: Candle[]) {
   );
   const assetValue = await BinanceApiService.getAssetValue();
   LogService.log(
-    `Asset value: ${assetValue} RIO: ${(
+    `Asset value: ${assetValue.toFixed(2)} RIO: ${(
       ((assetValue - INITIAL_BALANCE) / INITIAL_BALANCE) *
       100
     ).toFixed(2)}%`
