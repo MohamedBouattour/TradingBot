@@ -38,7 +38,7 @@ async function runTradingBot(candlestick: Candle[]) {
     `Asset value: ${assetValue.toFixed(2)} RIO: ${(
       ((assetValue - INITIAL_BALANCE) / INITIAL_BALANCE) *
       100
-    ).toFixed(2)}%`
+    ).toFixed(2)}% PNL = ${INITIAL_BALANCE - assetValue}`
   );
   if (decision.length) {
     if (decision === Operation.BUY) {
