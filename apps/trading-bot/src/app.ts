@@ -1,3 +1,4 @@
+import * as dotenv from "dotenv";
 import { supertrend } from "supertrend";
 import { INITIAL_BALANCE, PAIR, TIME_FRAME } from "./constants";
 import { delay } from "./core/utils";
@@ -10,7 +11,6 @@ import { MarketService } from "./services/market.service";
 import { TradeService } from "./services/trade.service";
 import { StrategyManager } from "./strategies/strategy-manager";
 import { SuperTrendStrategy } from "./strategies/supertrend/supertrend-strategy";
-import * as dotenv from "dotenv";
 dotenv.config();
 
 const interval = new TickInterval(Interval[TIME_FRAME]);
@@ -19,7 +19,6 @@ const marketService = new MarketService(PAIR, interval, 100);
 const strategyManager = new StrategyManager(new SuperTrendStrategy());
 
 async function runTradingBot(candlestick: Candle[]) {
-  //candlestick = candlestick.slice(0, -1);
   const superTrends = supertrend({
     initialArray: candlestick,
     multiplier: 3,
@@ -34,12 +33,16 @@ async function runTradingBot(candlestick: Candle[]) {
     ).toISOString()}`
   );
   const assetValue = await BinanceApiService.getAssetValue();
+  const total = assetValue[0] + assetValue[1];
+  const rio = ((total - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
   LogService.log(
-    `Asset value: ${assetValue.toFixed(2)} RIO: ${(
-      ((assetValue - INITIAL_BALANCE) / INITIAL_BALANCE) *
-      100
-    ).toFixed(2)}% PNL = ${INITIAL_BALANCE - assetValue}`
+    `Asset value: ${total.toFixed(2)} RIO: ${rio.toFixed(2)}% PNL = ${
+      INITIAL_BALANCE - total
+    }`
   );
+  if (rio > 1 && assetValue[0] > assetValue[1]) {
+    await TradeService.adjustStopLoss(superTrends[superTrends.length - 1]);
+  }
   if (decision.length) {
     if (decision === Operation.BUY) {
       await TradeService.handleBuy();

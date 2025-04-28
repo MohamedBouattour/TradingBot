@@ -4,7 +4,6 @@ import {
   BALANCE_POSTIOTION_RATIO,
   BASE_CURRENCY,
   PAIR,
-  TARGET_ROI,
 } from "../constants";
 import { BinanceApiService } from "./binance-api.service";
 import { LogService } from "./log.service";
@@ -30,19 +29,11 @@ export class TradeService {
     }
     const marketPrice = await BinanceApiService.getMarketPrice(PAIR);
     const quantity = parseFloat((balance / marketPrice).toFixed(5));
-    const tpPrice = parseFloat((marketPrice * TARGET_ROI).toFixed(2));
     LogService.log(
-      `Setting up trade for : ${PAIR} amount: ${quantity} BuyPrice ${marketPrice} SellPrice ${tpPrice} roi:${(
-        tpPrice / marketPrice
-      ).toFixed(2)} @${new Date().toISOString()}`
+      `Setting up trade for : ${PAIR} amount: ${quantity} BuyPrice ${marketPrice}`
     );
     try {
-      const order = await BinanceApiService.buyAndSetTakeProfit(
-        PAIR,
-        quantity,
-        tpPrice
-      );
-      LogService.log(`Take profit set at: ${tpPrice}`);
+      const order = await BinanceApiService.buyAndSetTakeProfit(PAIR, quantity);
       return order;
     } catch (error: any) {
       LogService.log(`Error executing trade: ${error.message}`);
@@ -80,6 +71,17 @@ export class TradeService {
     );
     try {
       return await BinanceApiService.sell(PAIR, quantity);
+    } catch (error: any) {
+      LogService.log(`Error executing trade: ${error.message}`);
+      return;
+    }
+  }
+
+  public static async adjustStopLoss(slPrice: number) {
+    await BinanceApiService.cancelAllOrders(PAIR);
+    try {
+      LogService.log(`Adjusting stop loss to: ${slPrice}`);
+      return BinanceApiService.setStopLoss(PAIR, slPrice);
     } catch (error: any) {
       LogService.log(`Error executing trade: ${error.message}`);
       return;

@@ -1,7 +1,12 @@
 import * as dotenv from "dotenv";
 import Binance from "node-binance-api";
 import { CancelOrder, Order } from "node-binance-api/dist/types";
-import { ASSET, BASE_CURRENCY, PAIR } from "../constants";
+import {
+  ASSET,
+  BALANCE_POSTIOTION_RATIO,
+  BASE_CURRENCY,
+  PAIR,
+} from "../constants";
 dotenv.config();
 
 export class BinanceApiService {
@@ -32,7 +37,7 @@ export class BinanceApiService {
    * Get asset value in usd
    * @returns Promise containing asset value in usd
    */
-  public static async getAssetValue(): Promise<number> {
+  public static async getAssetValue(): Promise<Array<number>> {
     const account = await BinanceApiService.binance.account();
     const assetPrice = await BinanceApiService.getMarketPrice(PAIR);
     const assetBalance = account.balances.find(
@@ -48,7 +53,7 @@ export class BinanceApiService {
     const baseCurrencyValue =
       parseFloat(baseCurrencyBalance!.free) +
       parseFloat(baseCurrencyBalance!.locked);
-    return assetValue + baseCurrencyValue;
+    return [assetValue, baseCurrencyValue];
   }
 
   /**
@@ -114,10 +119,10 @@ export class BinanceApiService {
   public static async buyAndSetTakeProfit(
     asset: string,
     quantity: number,
-    tpPrice: number
+    tpPrice?: number
   ): Promise<Order> {
     const order: Order = await BinanceApiService.buy(asset, quantity);
-    if (order.status === "FILLED") {
+    if (order.status === "FILLED" && tpPrice) {
       await BinanceApiService.sell(asset, quantity, tpPrice);
     } else {
       throw new Error("Order not filled");
@@ -131,5 +136,24 @@ export class BinanceApiService {
    */
   public static async getServerTime(): Promise<{ serverTime: number }> {
     return BinanceApiService.binance.time();
+  }
+
+  public static async setStopLoss(
+    symbol: string,
+    stopPrice: number
+  ): Promise<Order> {
+    const quantity = parseFloat(
+      (
+        (await BinanceApiService.getBalance())[ASSET].available *
+        BALANCE_POSTIOTION_RATIO
+      ).toFixed(5)
+    );
+    return BinanceApiService.binance.order(
+      "STOP_MARKET",
+      "SELL",
+      symbol,
+      quantity,
+      stopPrice
+    );
   }
 }
