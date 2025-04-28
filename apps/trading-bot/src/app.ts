@@ -36,9 +36,9 @@ async function runTradingBot(candlestick: Candle[]) {
   const total = assetValue[0] + assetValue[1];
   const rio = ((total - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
   LogService.log(
-    `Asset value: ${total.toFixed(2)} RIO: ${rio.toFixed(2)}% PNL = ${
+    `Asset value: ${total.toFixed(2)} RIO: ${rio.toFixed(2)}% PNL = ${(
       INITIAL_BALANCE - total
-    }`
+    ).toFixed(2)} $`
   );
   if (rio > 1 && assetValue[0] > assetValue[1]) {
     await TradeService.adjustStopLoss(superTrends[superTrends.length - 1]);
