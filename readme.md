@@ -11,6 +11,9 @@ A TypeScript-based automated trading bot for cryptocurrency markets.
 - Configurable trading parameters
 - Logging and performance tracking
 
+To Do:
+add sell on first candle closes blow ema 50
+
 ## Installation
 
 ```bash

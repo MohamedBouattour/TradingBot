@@ -1,12 +1,18 @@
 import * as dotenv from "dotenv";
 import Binance from "node-binance-api";
-import { CancelOrder, Order } from "node-binance-api/dist/types";
+import {
+  CancelOrder,
+  Order,
+  OrderSide,
+  OrderType,
+} from "node-binance-api/dist/types";
 import {
   ASSET,
   BALANCE_POSTIOTION_RATIO,
   BASE_CURRENCY,
   PAIR,
 } from "../constants";
+import { LogService } from "./log.service";
 dotenv.config();
 
 export class BinanceApiService {
@@ -104,7 +110,9 @@ export class BinanceApiService {
   }
 
   public static async cancelAllOrders(symbol: string): Promise<CancelOrder> {
-    return BinanceApiService.binance.cancelAllOrders(symbol);
+    const res = await BinanceApiService.binance.cancelAllOrders(symbol);
+    LogService.log(res);
+    return res;
   }
 
   /**
@@ -112,7 +120,6 @@ export class BinanceApiService {
    * @param asset - The trading pair symbol
    * @param quantity - The amount to buy
    * @param tpPrice - The take profit price
-   * @param withTp - Whether to place a take profit order
    * @returns Promise<Order> - The executed buy order
    * @throws Error if the order is not filled
    */
@@ -149,11 +156,14 @@ export class BinanceApiService {
       ).toFixed(5)
     );
     return BinanceApiService.binance.order(
-      "STOP_MARKET",
-      "SELL",
+      "STOP_LOSS" as OrderType,
+      "SELL" as OrderSide,
       symbol,
       quantity,
-      stopPrice
+      stopPrice,
+      {
+        stopPrice,
+      }
     );
   }
 }
