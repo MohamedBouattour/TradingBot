@@ -1,6 +1,13 @@
+import { Indicators } from "@ixjb94/indicators";
 import * as dotenv from "dotenv";
 import { supertrend } from "supertrend";
-import { INITIAL_BALANCE, PAIR, TARGET_ROI, TIME_FRAME } from "./constants";
+import {
+  ASSET,
+  INITIAL_BALANCE,
+  PAIR,
+  TIME_FRAME,
+  getPrecision,
+} from "./constants";
 import { delay } from "./core/utils";
 import { Candle } from "./models/candle.model";
 import { Operation } from "./models/operation.enum";
@@ -11,13 +18,10 @@ import { MarketService } from "./services/market.service";
 import { TradeService } from "./services/trade.service";
 import { StrategyManager } from "./strategies/strategy-manager";
 import { SuperTrendStrategy } from "./strategies/supertrend/supertrend-strategy";
-import { Indicators } from "@ixjb94/indicators";
 const ta = new Indicators();
 dotenv.config();
 
 const interval = new TickInterval(Interval[TIME_FRAME]);
-
-const marketService = new MarketService(PAIR, interval, 100);
 const strategyManager = new StrategyManager(new SuperTrendStrategy());
 
 async function runTradingBot(candlestick: Candle[]) {
@@ -60,7 +64,15 @@ async function runTradingBot(candlestick: Candle[]) {
     ).toFixed(2)} $`
   );
   if (decision.length) {
-    if (decision === Operation.BUY && candlestick[candlestick.length - 1].close > ema50[ema50.length - 1]) {
+    const volatility =
+      ((candlestick[candlestick.length - 1].close - ema50[ema50.length - 1]) /
+        ema50[ema50.length - 1]) *
+      100;
+    if (decision === Operation.BUY && volatility > 0.04) {
+      const tpPrice = 1 + (volatility * 1.5) / 100;
+      LogService.log(
+        `Volatility: ${(volatility * 100).toFixed(2)}% TP:${tpPrice}`
+      );
       await TradeService.handleBuy();
     } else if (decision === Operation.SELL && assetValue[0] < assetValue[1]) {
       TradeService.handleSell();
@@ -69,7 +81,10 @@ async function runTradingBot(candlestick: Candle[]) {
 }
 
 async function main() {
-  let candlesticks = await marketService.fetchCandlestickData();
+  let candlesticks = await MarketService.fetchCandlestickData(
+    PAIR,
+    interval.getInterval()
+  );
   const serverTime = (await BinanceApiService.getServerTime()).serverTime;
   const timeToCloseCurrentCandle =
     new Date(candlesticks[candlesticks.length - 1].closeTime).getTime() -
@@ -82,11 +97,21 @@ async function main() {
     );
     await delay(timeToCloseCurrentCandle + 1000);
   }
-  LogService.log("Starting Trading Bot @ ");
-  candlesticks = await marketService.fetchCandlestickData();
+  const marketPrice = await BinanceApiService.getMarketPrice(PAIR);
+  LogService.log(
+    "Starting Trading Bot @ " + ASSET,
+    " Price:" + marketPrice + " precision " + getPrecision(marketPrice)
+  );
+  candlesticks = await MarketService.fetchCandlestickData(
+    PAIR,
+    interval.getInterval()
+  );
   runTradingBot(candlesticks.slice(0, -1));
   setInterval(async () => {
-    candlesticks = await marketService.fetchCandlestickData();
+    candlesticks = await MarketService.fetchCandlestickData(
+      PAIR,
+      interval.getInterval()
+    );
     runTradingBot(candlesticks.slice(0, -1));
   }, interval.getValueInMs());
 }

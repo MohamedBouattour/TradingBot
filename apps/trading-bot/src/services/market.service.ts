@@ -1,28 +1,21 @@
-import { Candle } from "../models/candle.model";
 import { convertStringToNumbers, delay } from "../core/utils";
-import { TickInterval } from "../models/tick-interval.model";
+import { Candle } from "../models/candle.model";
 
 export class MarketService {
-  private market: string;
-  private tickInterval: string;
-  private limit: number;
-
-  constructor(market: string, tickInterval: TickInterval, limit: number) {
-    this.market = market;
-    this.tickInterval = tickInterval.getInterval();
-    this.limit = limit;
-  }
-
-  async fetchCandlestickData(): Promise<Candle[]> {
+  public static async fetchCandlestickData(
+    market: string,
+    tickInterval: string,
+    limit: number = 100
+  ): Promise<Candle[]> {
     const maxRetries = 3;
     let attempt = 0;
 
     while (attempt < maxRetries) {
       try {
         const response = await fetch(
-          `https://api.binance.com/api/v1/klines?symbol=${
-            this.market
-          }&interval=${this.tickInterval}&limit=${this.limit + 1}`
+          `https://api.binance.com/api/v1/klines?symbol=${market}&interval=${tickInterval}&limit=${
+            limit + 1
+          }`
         );
 
         if (!response.ok) {

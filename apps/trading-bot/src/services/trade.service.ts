@@ -19,7 +19,7 @@ export class TradeService {
    * Uses BASE_CURRENCY balance and TARGET_ROI for calculations
    * @throws Error if the trade execution fails
    */
-  public static async handleBuy(): Promise<void | Order> {
+  public static async handleBuy(tpPrice?: number): Promise<void | Order> {
     const balance =
       (await BinanceApiService.getBalance())[BASE_CURRENCY].available *
       BALANCE_POSTIOTION_RATIO;
@@ -28,9 +28,11 @@ export class TradeService {
     const quantity = parseFloat(
       (balance / marketPrice).toFixed(getPrecision(marketPrice))
     );
-    const tpPrice = parseFloat(
-      (marketPrice * TARGET_ROI).toFixed(getPrecision(marketPrice))
-    );
+
+    let calculatedTpPrice =
+      tpPrice ||
+      parseFloat((marketPrice * TARGET_ROI).toFixed(getPrecision(marketPrice)));
+
     LogService.log(
       `Setting up trade for : ${PAIR} amount: ${quantity} BuyPrice ${marketPrice}`
     );
@@ -44,7 +46,7 @@ export class TradeService {
       const order = await BinanceApiService.buyAndSetTakeProfit(
         PAIR,
         quantity,
-        tpPrice
+        calculatedTpPrice
       );
       return order;
     } catch (error: any) {
@@ -60,17 +62,11 @@ export class TradeService {
    */
   public static async handleSell(): Promise<void | Order> {
     // cancel all pendig orders
-    LogService.log(`0`);
     try {
-      LogService.log(`1`);
       await BinanceApiService.cancelAllOrders(PAIR);
-      LogService.log(`2`);
     } catch (error: any) {
-      LogService.log(`Error cancelAllOrders: ${error.message}`);
-    } finally {
       LogService.log(`no open orders`);
     }
-    LogService.log(`3`);
     const marketPrice = await BinanceApiService.getMarketPrice(PAIR);
     // sell all assets
     LogService.log(`4`);
@@ -106,12 +102,8 @@ export class TradeService {
 
   public static async adjustStopLoss(slPrice: number) {
     try {
-      LogService.log(`1`);
       await BinanceApiService.cancelAllOrders(PAIR);
-      LogService.log(`2`);
     } catch (error: any) {
-      LogService.log(`Error cancelAllOrders: ${error.message}`);
-    } finally {
       LogService.log(`no open orders`);
     }
     try {
