@@ -6,4 +6,4 @@ sudo pkill -f node
 sleep 2
 
 sudo nohup node app.js > output.log 2>&1 &
-sleep 1
+disown

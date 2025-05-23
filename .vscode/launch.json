@@ -16,6 +16,19 @@
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
             ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Debug-BackTest",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "runtimeExecutable": "ts-node",
+            "program": "${workspaceFolder}/apps/trading-bot/src/backtest.ts",
+            "outFiles": [
+                "${workspaceFolder}/**/*.js"
+            ]
         }
     ]
 }

@@ -1,25 +1,18 @@
-export const TIME_FRAME = "5m";
-export const ASSET = "SUI";
-export const BALANCE_POSTIOTION_RATIO = 0.99;
-export const TARGET_ROI = 1.01;
+export const TIME_FRAME = "15m";
+export const SHORT_MA = 25;
+export const LONG_MA = 100;
+export const ASSET = "BTC";
+export const AMOUNT_PRECISION = 1;
+export const PRICE_PRECISION = 4;
+export const BALANCE_POSTIOTION_RATIO = 0.999;
+export const USE_TP = true;
+export const PERIOD = 30 * 24 * 60 * 60 * 1000;
+export const TARGET_ROI = 1.04;
+export const MIN_TARGET_ROI = TARGET_ROI;
+export const MAX_TARGET_ROI = TARGET_ROI;
 export const BASE_CURRENCY = "USDT";
 export const PAIR = ASSET + BASE_CURRENCY;
-export const INITIAL_BALANCE = 442;
-export function getPrecision(marketPrice: number) {
-  if (marketPrice > 10000) {
-    return 5;
-  } else if (marketPrice > 1000) {
-    return 4;
-  } else if (marketPrice > 100) {
-    return 3;
-  } else if (marketPrice > 10) {
-    return 2;
-  } else if (marketPrice > 1) {
-    return 1;
-  } else {
-    return 0;
-  }
-}
+export const INITIAL_BALANCE = 551;
 export const ASSETS = [
   "BTC",
   "ETH",
@@ -37,5 +30,6 @@ export const ASSETS = [
   "LTC",
   "DOT",
 ];
-//417
 //442
+//488
+//505

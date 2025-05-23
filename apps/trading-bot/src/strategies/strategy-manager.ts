@@ -11,7 +11,14 @@ export class StrategyManager {
     this.strategy = strategy;
   }
 
-  executeStrategy(candles: any[], superTrends: number[]): string {
-    return this.strategy.execute(candles, superTrends);
+  executeStrategy(candles: any[]): {
+    label: string;
+    tp: number;
+    sl: number;
+    roi: number;
+    riskRewardRatio: number;
+    risking: number;
+  } {
+    return this.strategy.execute(candles);
   }
 }

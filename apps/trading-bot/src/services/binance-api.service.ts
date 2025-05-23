@@ -110,9 +110,11 @@ export class BinanceApiService {
   }
 
   public static async cancelAllOrders(symbol: string): Promise<CancelOrder> {
-    const res = await BinanceApiService.binance.cancelAllOrders(symbol);
-    LogService.log(res);
-    return res;
+    return await BinanceApiService.binance.cancelAllOrders(symbol);
+  }
+
+  public static async getPricePrecision(price: number): Promise<number> {
+    return await BinanceApiService.binance.getPrecision(price);
   }
 
   /**
@@ -123,14 +125,31 @@ export class BinanceApiService {
    * @returns Promise<Order> - The executed buy order
    * @throws Error if the order is not filled
    */
-  public static async buyAndSetTakeProfit(
+  public static async buyAndSetTPSL(
     asset: string,
     quantity: number,
-    tpPrice?: number
+    tpPrice?: number,
+    slPrice?: number
   ): Promise<Order> {
     const order: Order = await BinanceApiService.buy(asset, quantity);
     if (order.status === "FILLED" && tpPrice) {
-      await BinanceApiService.sell(asset, quantity, tpPrice);
+      await BinanceApiService.binance.order(
+        "LIMIT" as OrderType,
+        "SELL" as OrderSide,
+        asset,
+        quantity,
+        tpPrice
+      );
+      /* await BinanceApiService.binance.order(
+        "TAKE_PROFIT_LIMIT" as OrderType,
+        "SELL" as OrderSide,
+        asset,
+        quantity,
+        tpPrice,
+        {
+          stopPrice: slPrice,
+        }
+      ); */
     } else {
       throw new Error("Order not filled");
     }

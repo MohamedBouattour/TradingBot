@@ -38,3 +38,20 @@ export function convertStringToNumbers(candles: string[][]): Candle[] {
 export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+export function getMACDHistogramColorLabels(hist: number[]): string[] {
+  const labels: string[] = [];
+
+  for (let i = 1; i < hist.length; i++) {
+    const prev = hist[i - 1];
+    const curr = hist[i];
+
+    if (curr >= 0) {
+      labels.push(curr > prev ? "dark-green" : "light-green");
+    } else {
+      labels.push(curr > prev ? "light-red" : "dark-red");
+    }
+  }
+
+  return labels;
+}

@@ -5,7 +5,8 @@ export class MarketService {
   public static async fetchCandlestickData(
     market: string,
     tickInterval: string,
-    limit: number = 100
+    limit: number = 100,
+    endTime?: number
   ): Promise<Candle[]> {
     const maxRetries = 3;
     let attempt = 0;
@@ -15,7 +16,7 @@ export class MarketService {
         const response = await fetch(
           `https://api.binance.com/api/v1/klines?symbol=${market}&interval=${tickInterval}&limit=${
             limit + 1
-          }`
+          }${endTime ? "&endTime=" + endTime : ""}`
         );
 
         if (!response.ok) {
