@@ -12,12 +12,11 @@ import { Operation } from "./models/operation.enum";
 import { Interval, TickInterval } from "./models/tick-interval.model";
 import { LogService } from "./services/log.service";
 import { MarketService } from "./services/market.service";
-import { MacdSMA } from "./strategies/macdSMA/macdEma";
 import { StrategyManager } from "./strategies/strategy-manager";
 
 import { SuperTrendStrategy } from "./strategies/supertrend/supertrend-strategy";
 
-const strategyManager = new StrategyManager(new MacdSMA());
+const strategyManager = new StrategyManager(new SuperTrendStrategy());
 
 let allData: Candle[] = [];
 let positions: any[] = [];
@@ -118,7 +117,8 @@ async function mainWithFixedRoi() {
           }
           if (label === Operation.SELL) {
             position.pnl =
-              ((testedData.at(-1)!.close - position.price) / position.price) * 100;
+              ((testedData.at(-1)!.close - position.price) / position.price) *
+              100;
             position.pnl = parseFloat((position.pnl - FEES).toFixed(4));
             position.status = "Closed with SL";
             position.closeTime = testedData[testedData.length - 1].time;

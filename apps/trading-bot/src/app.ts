@@ -8,41 +8,36 @@ import { BinanceApiService } from "./services/binance-api.service";
 import { LogService } from "./services/log.service";
 import { MarketService } from "./services/market.service";
 import { TradeService } from "./services/trade.service";
-import { MacdSMA } from "./strategies/macdSMA/macdEma";
 import { StrategyManager } from "./strategies/strategy-manager";
+import { SuperTrendStrategy } from "./strategies/supertrend/supertrend-strategy";
 dotenv.config();
 
 const interval = new TickInterval(Interval[TIME_FRAME]);
-const strategyManager = new StrategyManager(new MacdSMA());
+const strategyManager = new StrategyManager(new SuperTrendStrategy());
 
 async function runTradingBot(candlestick: Candle[]) {
-  const { label, tp, sl, roi, riskRewardRatio } =
+  const { label, tp, sl, riskRewardRatio } =
     strategyManager.executeStrategy(candlestick);
 
-  const assetValue = await BinanceApiService.getAssetValue();
-  const total = assetValue[0] + assetValue[1];
-  const rio = ((total - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
-  LogService.log(
-    `Asset value: ${total.toFixed(2)} RIO: ${rio.toFixed(2)}% PNL = ${(
-      total - INITIAL_BALANCE
-    ).toFixed(2)} $ tpPrice: ` + tp
-  );
+  const roi = await calculateRoi();
+  if (roi > 5) {
+    TradeService.handleSell();
+  }
 
   if (
     label === Operation.BUY &&
     tp > candlestick.at(-1)!.close &&
     sl > 0 &&
-    roi > 1.008 &&
     riskRewardRatio >= 1
   ) {
     await TradeService.handleBuy(tp, sl);
-  } else {
+  } /*  else {
     LogService.log(
       `${new Date().toISOString() + ":" + label || "No Trade"} :${new Date(
         candlestick[candlestick.length - 1].closeTime
       ).toISOString()}`
     );
-  }
+  } */
 }
 
 async function main() {
@@ -55,6 +50,7 @@ async function main() {
     new Date(candlesticks[candlesticks.length - 1].closeTime).getTime() -
     serverTime;
   if (process?.env?.["MODE"] !== "DEBUG" && timeToCloseCurrentCandle > 0) {
+    calculateRoi();
     //await TradeService.testOrders(PAIR);
     LogService.log(
       "Waiting for next candle to open in " +
@@ -84,4 +80,15 @@ async function main() {
   }
 }
 
+async function calculateRoi() {
+  const assetValue = await BinanceApiService.getAssetValue();
+  const total = assetValue[0] + assetValue[1];
+  const rio = ((total - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
+  LogService.log(
+    `${new Date().toISOString()} Asset value: ${total.toFixed(
+      2
+    )} RIO: ${rio.toFixed(2)}% PNL = ${(total - INITIAL_BALANCE).toFixed(2)}`
+  );
+  return rio;
+}
 main();
