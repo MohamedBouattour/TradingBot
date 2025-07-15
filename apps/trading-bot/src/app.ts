@@ -8,29 +8,20 @@ import { BinanceApiService } from "./services/binance-api.service";
 import { LogService } from "./services/log.service";
 import { MarketService } from "./services/market.service";
 import { TradeService } from "./services/trade.service";
+import { RSIStrategy } from "./strategies/rsi/rsi-strategy";
 import { StrategyManager } from "./strategies/strategy-manager";
-import { SuperTrendStrategy } from "./strategies/supertrend/supertrend-strategy";
 dotenv.config();
 
 const interval = new TickInterval(Interval[TIME_FRAME]);
-const strategyManager = new StrategyManager(new SuperTrendStrategy());
+const strategyManager = new StrategyManager(new RSIStrategy());
 
 async function runTradingBot(candlestick: Candle[]) {
-  const { label, tp, sl, riskRewardRatio } =
-    strategyManager.executeStrategy(candlestick);
+  const { label, tp } = strategyManager.executeStrategy(candlestick);
 
-  const roi = await calculateRoi();
-  if (roi > 5) {
-    TradeService.handleSell();
-  }
+  await calculateRoi();
 
-  if (
-    label === Operation.BUY &&
-    tp > candlestick.at(-1)!.close &&
-    sl > 0 &&
-    riskRewardRatio >= 1
-  ) {
-    await TradeService.handleBuy(tp, sl);
+  if (label === Operation.BUY && tp > candlestick.at(-1)!.close) {
+    await TradeService.handleBuy(tp);
   } /*  else {
     LogService.log(
       `${new Date().toISOString() + ":" + label || "No Trade"} :${new Date(

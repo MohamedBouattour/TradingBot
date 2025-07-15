@@ -18,7 +18,7 @@ export class SuperTrendStrategy implements TradingStrategy {
   } {
     const superTrends = supertrend({
       initialArray: candles,
-      multiplier: 3,
+      multiplier: 9,
       period: 10,
     });
 
@@ -40,8 +40,7 @@ export class SuperTrendStrategy implements TradingStrategy {
 
     if (
       lastCandle.close > lastSuperTrend &&
-      previousCandle.close < previousSuperTrend &&
-      !isNearResistance
+      previousCandle.close < previousSuperTrend
     ) {
       return {
         label: Operation.BUY,
@@ -101,9 +100,9 @@ export class SuperTrendStrategy implements TradingStrategy {
   private isTooCloseToResistance(
     price: number,
     resistance: number,
-    thresholdPercent = 2
+    thresholdPercent = 1
   ): boolean {
     const distance = Math.abs((resistance - price) / price) * 100;
-    return distance <= thresholdPercent;
+    return distance >= thresholdPercent;
   }
 }
