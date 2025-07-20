@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "dist/app.js",
   "scripts": {
-    "build": "esbuild ./apps/trading-bot/src/app.ts --bundle --platform=node --outfile=dist/app.js",
+    "build": "esbuild ./apps/trading-bot/src/app.ts --bundle --platform=node --outfile=dist/bot.js",
     "build-scanner": "esbuild ./apps/market-scanner/src/app.ts --bundle --platform=node --outfile=dist/scanner.js",
     "build:watch": "esbuild ./apps/trading-bot/src/app.ts --bundle --platform=node --outfile=dist/app.js --watch",
     "start": "ts-node ./apps/trading-bot/src/app.ts",

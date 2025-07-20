@@ -1,5 +1,12 @@
 import * as dotenv from "dotenv";
-import { ASSET, INITIAL_BALANCE, PAIR, TIME_FRAME } from "./constants";
+import {
+  ASSET,
+  BASE_CURRENCY,
+  INITIAL_BALANCE,
+  PAIR,
+  PORTFOLIO,
+  TIME_FRAME,
+} from "./constants";
 import { delay } from "./core/utils";
 import { Candle } from "./models/candle.model";
 import { Operation } from "./models/operation.enum";
@@ -19,6 +26,7 @@ async function runTradingBot(candlestick: Candle[]) {
   const { label, tp } = strategyManager.executeStrategy(candlestick);
 
   await calculateRoi();
+  await rebalancePorfolio();
 
   if (label === Operation.BUY && tp > candlestick.at(-1)!.close) {
     await TradeService.handleBuy(tp);
@@ -41,8 +49,8 @@ async function main() {
     new Date(candlesticks[candlesticks.length - 1].closeTime).getTime() -
     serverTime;
   if (process?.env?.["MODE"] !== "DEBUG" && timeToCloseCurrentCandle > 0) {
-    calculateRoi();
-    //await TradeService.testOrders(PAIR);
+    await calculateRoi();
+    await rebalancePorfolio();
     LogService.log(
       "Waiting for next candle to open in " +
         (timeToCloseCurrentCandle / (1000 * 60)).toFixed(2) +
@@ -71,7 +79,7 @@ async function main() {
   }
 }
 
-async function calculateRoi() {
+export async function calculateRoi() {
   const assetValue = await BinanceApiService.getAssetValue();
   const total = assetValue[0] + assetValue[1];
   const rio = ((total - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
@@ -81,5 +89,11 @@ async function calculateRoi() {
     )} RIO: ${rio.toFixed(2)}% PNL = ${(total - INITIAL_BALANCE).toFixed(2)}`
   );
   return rio;
+}
+
+async function rebalancePorfolio() {
+  PORTFOLIO.forEach(async (item) => {
+    await BinanceApiService.handleReabalance(item, BASE_CURRENCY);
+  });
 }
 main();

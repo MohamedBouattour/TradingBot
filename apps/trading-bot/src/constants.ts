@@ -1,3 +1,5 @@
+import { PortfolioItem } from "./models/portfolio-item.model";
+
 export const TIME_FRAME = "30m";
 export const SHORT_MA = 25;
 export const LONG_MA = 100;
@@ -29,6 +31,12 @@ export const ASSETS = [
   "TON",
   "LTC",
   "DOT",
+];
+export const PORTFOLIO: PortfolioItem[] = [
+  { asset: "ETH", value: 100, pricePresision: 2, quantityPrecision: 4 },
+  { asset: "BNB", value: 100, pricePresision: 2, quantityPrecision: 3 },
+  { asset: "SOL", value: 100, pricePresision: 2, quantityPrecision: 3 },
+  { asset: "SUI", value: 25, pricePresision: 4, quantityPrecision: 1 },
 ];
 //442
 //488

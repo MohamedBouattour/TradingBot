@@ -13,6 +13,7 @@ import {
   PAIR,
 } from "../constants";
 import { LogService } from "./log.service";
+import { PortfolioItem } from "../models/portfolio-item.model";
 dotenv.config();
 
 export class BinanceApiService {
@@ -184,5 +185,30 @@ export class BinanceApiService {
         stopPrice,
       }
     );
+  }
+
+  public static async handleReabalance(
+    protfolioItem: PortfolioItem,
+    baseCurrency: string
+  ): Promise<Order | void> {
+    const account = await BinanceApiService.binance.account();
+    const assetPrice = await BinanceApiService.getMarketPrice(
+      protfolioItem.asset + baseCurrency
+    );
+    const assetBalance = account.balances.find(
+      (item: any) => item.asset === protfolioItem.asset
+    );
+    const assetValue = parseFloat(assetBalance!.free) * assetPrice;
+    const amount = parseFloat(
+      (parseFloat(assetBalance!.free) * 0.05).toFixed(
+        protfolioItem.quantityPrecision
+      )
+    );
+    LogService.log(`${amount} ${protfolioItem.asset}: ${assetValue}$`);
+    if (assetValue > protfolioItem.value * 1.05) {
+      return BinanceApiService.sell(protfolioItem.asset + baseCurrency, amount);
+    } else if (assetValue < protfolioItem.value * 0.95) {
+      return BinanceApiService.buy(protfolioItem.asset + baseCurrency, amount);
+    }
   }
 }
