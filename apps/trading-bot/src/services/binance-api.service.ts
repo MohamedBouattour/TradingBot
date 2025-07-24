@@ -208,7 +208,15 @@ export class BinanceApiService {
     if (assetValue > protfolioItem.value * 1.05) {
       return BinanceApiService.sell(protfolioItem.asset + baseCurrency, amount);
     } else if (assetValue < protfolioItem.value * 0.95) {
-      return BinanceApiService.buy(protfolioItem.asset + baseCurrency, amount);
+      const buyinQuantiy = parseFloat(
+        ((protfolioItem.value / assetPrice) * 0.052).toFixed(
+          protfolioItem.quantityPrecision
+        )
+      );
+      return BinanceApiService.buy(
+        protfolioItem.asset + baseCurrency,
+        buyinQuantiy
+      );
     }
   }
 }
