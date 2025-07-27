@@ -1,7 +1,8 @@
 import { Candle } from "../models/candle.model";
 
 export function convertStringToNumbers(candles: string[][]): Candle[] {
-  return candles.reduce((result: Candle[], candle: string[]) => {
+  // Use map instead of reduce with spread operator for better memory efficiency
+  return candles.map((candle: string[]) => {
     const [
       time,
       open,
@@ -17,7 +18,8 @@ export function convertStringToNumbers(candles: string[][]): Candle[] {
       ignored,
     ] = candle;
 
-    const newObj: Candle = {
+    // Create object directly without intermediate variables
+    return {
       time: new Date(Number(time)).toISOString(),
       open: Number(open),
       high: Number(high),
@@ -30,9 +32,8 @@ export function convertStringToNumbers(candles: string[][]): Candle[] {
       buyBaseVolume: Number(buyBaseVolume),
       buyAssetVolume: Number(buyAssetVolume),
       ignored,
-    };
-    return [...result, newObj];
-  }, []);
+    } as Candle;
+  });
 }
 
 export function delay(ms: number): Promise<void> {
@@ -40,17 +41,16 @@ export function delay(ms: number): Promise<void> {
 }
 
 export function getMACDHistogramColorLabels(hist: number[]): string[] {
-  const labels: string[] = [];
+  // Pre-allocate array with known size for better memory efficiency
+  const labels: string[] = new Array(hist.length - 1);
 
   for (let i = 1; i < hist.length; i++) {
     const prev = hist[i - 1];
     const curr = hist[i];
 
-    if (curr >= 0) {
-      labels.push(curr > prev ? "dark-green" : "light-green");
-    } else {
-      labels.push(curr > prev ? "light-red" : "dark-red");
-    }
+    labels[i - 1] = curr >= 0
+      ? (curr > prev ? "dark-green" : "light-green")
+      : (curr > prev ? "light-red" : "dark-red");
   }
 
   return labels;

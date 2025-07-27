@@ -1,0 +1,26 @@
+{
+  "name": "trading-bot",
+  "version": "1.0.0",
+  "main": "dist/bot.js",
+  "scripts": {
+    "build": "esbuild ./apps/trading-bot/src/app.ts --bundle --platform=node --outfile=dist/bot.js --minify --tree-shaking",
+    "build:prod": "esbuild ./apps/trading-bot/src/app.ts --bundle --platform=node --outfile=dist/bot.js --minify --tree-shaking --external:node-binance-api",
+    "start": "node dist/bot.js",
+    "dev": "ts-node ./apps/trading-bot/src/app.ts",
+    "test": "npx jest --coverage apps/trading-bot/__tests__"
+  },
+  "dependencies": {
+    "@ixjb94/indicators": "^1.2.4",
+    "dotenv": "^16.5.0",
+    "node-binance-api": "^1.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "esbuild": "^0.25.2",
+    "typescript": "^5.8.3",
+    "ts-node": "^29.3.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

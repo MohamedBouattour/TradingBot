@@ -1,4 +1,4 @@
-import * as dotenv from "dotenv";
+import { config } from "dotenv";
 import Binance from "node-binance-api";
 import {
   CancelOrder,
@@ -14,7 +14,7 @@ import {
 } from "../constants";
 import { LogService } from "./log.service";
 import { PortfolioItem } from "../models/portfolio-item.model";
-dotenv.config();
+config();
 
 export class BinanceApiService {
   private static binance = new Binance().options({
@@ -31,13 +31,52 @@ export class BinanceApiService {
     family: 4,
     useServerTime: true,
     recvWindow: 10000,
+    reconnect: true,
+    keepAlive: true,
   });
+
+  private static requestCount = 0;
+  private static lastRequestTime = 0;
+  private static readonly MAX_REQUESTS_PER_MINUTE = 1200;
+  private static readonly REQUEST_WINDOW = 60000; // 1 minute
+  
+  // Cache for market prices to reduce API calls
+  private static priceCache = new Map<string, { price: number, timestamp: number }>();
+  private static readonly PRICE_CACHE_TTL = 5000; // 5 seconds cache for prices
+
+  private static async rateLimitCheck(): Promise<void> {
+    const now = Date.now();
+    
+    // Reset counter if window has passed
+    if (now - this.lastRequestTime > this.REQUEST_WINDOW) {
+      this.requestCount = 0;
+      this.lastRequestTime = now;
+    }
+    
+    // Check if we're approaching rate limit
+    if (this.requestCount >= this.MAX_REQUESTS_PER_MINUTE * 0.9) { // 90% of limit
+      const waitTime = this.REQUEST_WINDOW - (now - this.lastRequestTime);
+      if (waitTime > 0) {
+        console.warn(`Approaching rate limit, waiting ${waitTime}ms`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        this.requestCount = 0;
+        this.lastRequestTime = Date.now();
+      }
+    }
+    
+    this.requestCount++;
+  }
   /**
    * Get account balance for all assets
    * @returns Promise containing account balances
    */
   public static async getBalance(): Promise<any> {
-    return await BinanceApiService.binance.balance();
+    await this.rateLimitCheck();
+    try {
+      return await BinanceApiService.binance.balance();
+    } catch (error: any) {
+      throw new Error(`Failed to get balance: ${error.message}`);
+    }
   }
 
   /**
@@ -45,22 +84,41 @@ export class BinanceApiService {
    * @returns Promise containing asset value in usd
    */
   public static async getAssetValue(): Promise<Array<number>> {
-    const account = await BinanceApiService.binance.account();
-    const assetPrice = await BinanceApiService.getMarketPrice(PAIR);
-    const assetBalance = account.balances.find(
-      (asset) => asset.asset === ASSET
-    );
-    const assetValue =
-      (parseFloat(assetBalance!.free) + parseFloat(assetBalance!.locked)) *
-      assetPrice;
+    try {
+      await this.rateLimitCheck();
+      const account = await BinanceApiService.binance.account();
+      
+      await this.rateLimitCheck();
+      const assetPrice = await BinanceApiService.getMarketPrice(PAIR);
+      
+      const assetBalance = account.balances.find(
+        (asset) => asset.asset === ASSET
+      );
+      
+      if (!assetBalance) {
+        throw new Error(`Asset ${ASSET} not found in account balances`);
+      }
+      
+      const assetValue =
+        (parseFloat(assetBalance.free) + parseFloat(assetBalance.locked)) *
+        assetPrice;
 
-    const baseCurrencyBalance = account.balances.find(
-      (asset) => asset.asset === BASE_CURRENCY
-    );
-    const baseCurrencyValue =
-      parseFloat(baseCurrencyBalance!.free) +
-      parseFloat(baseCurrencyBalance!.locked);
-    return [assetValue, baseCurrencyValue];
+      const baseCurrencyBalance = account.balances.find(
+        (asset) => asset.asset === BASE_CURRENCY
+      );
+      
+      if (!baseCurrencyBalance) {
+        throw new Error(`Base currency ${BASE_CURRENCY} not found in account balances`);
+      }
+      
+      const baseCurrencyValue =
+        parseFloat(baseCurrencyBalance.free) +
+        parseFloat(baseCurrencyBalance.locked);
+        
+      return [assetValue, baseCurrencyValue];
+    } catch (error: any) {
+      throw new Error(`Failed to get asset value: ${error.message}`);
+    }
   }
 
   /**
@@ -103,15 +161,64 @@ export class BinanceApiService {
    * @returns Promise containing the current price as a string
    */
   public static async getMarketPrice(symbol: string): Promise<number> {
-    return (await BinanceApiService.binance.prices())[symbol];
+    // Check cache first
+    const cached = this.priceCache.get(symbol);
+    if (cached && (Date.now() - cached.timestamp) < this.PRICE_CACHE_TTL) {
+      return cached.price;
+    }
+
+    await this.rateLimitCheck();
+    try {
+      const prices = await BinanceApiService.binance.prices();
+      const price = prices[symbol];
+      if (!price) {
+        throw new Error(`Price not found for symbol: ${symbol}`);
+      }
+      
+      const numericPrice = typeof price === 'string' ? parseFloat(price) : price;
+      
+      // Cache the price
+      this.priceCache.set(symbol, {
+        price: numericPrice,
+        timestamp: Date.now()
+      });
+      
+      // Clean cache periodically
+      if (Math.random() < 0.1) { // 10% chance
+        this.cleanPriceCache();
+      }
+      
+      return numericPrice;
+    } catch (error: any) {
+      throw new Error(`Failed to get market price for ${symbol}: ${error.message}`);
+    }
+  }
+
+  private static cleanPriceCache() {
+    const now = Date.now();
+    for (const [symbol, data] of this.priceCache.entries()) {
+      if (now - data.timestamp > this.PRICE_CACHE_TTL * 2) {
+        this.priceCache.delete(symbol);
+      }
+    }
   }
 
   public static async getOpenOrders(symbol?: string): Promise<Order[]> {
-    return BinanceApiService.binance.openOrders(symbol);
+    await this.rateLimitCheck();
+    try {
+      return await BinanceApiService.binance.openOrders(symbol);
+    } catch (error: any) {
+      throw new Error(`Failed to get open orders: ${error.message}`);
+    }
   }
 
   public static async cancelAllOrders(symbol: string): Promise<CancelOrder> {
-    return await BinanceApiService.binance.cancelAllOrders(symbol);
+    await this.rateLimitCheck();
+    try {
+      return await BinanceApiService.binance.cancelAllOrders(symbol);
+    } catch (error: any) {
+      throw new Error(`Failed to cancel orders for ${symbol}: ${error.message}`);
+    }
   }
 
   public static async getPricePrecision(price: number): Promise<number> {
@@ -162,7 +269,12 @@ export class BinanceApiService {
    * @returns Promise containing the server time in milliseconds
    */
   public static async getServerTime(): Promise<{ serverTime: number }> {
-    return BinanceApiService.binance.time();
+    await this.rateLimitCheck();
+    try {
+      return await BinanceApiService.binance.time();
+    } catch (error: any) {
+      throw new Error(`Failed to get server time: ${error.message}`);
+    }
   }
 
   public static async setStopLoss(
@@ -191,32 +303,66 @@ export class BinanceApiService {
     protfolioItem: PortfolioItem,
     baseCurrency: string
   ): Promise<Order | void> {
-    const account = await BinanceApiService.binance.account();
-    const assetPrice = await BinanceApiService.getMarketPrice(
-      protfolioItem.asset + baseCurrency
-    );
-    const assetBalance = account.balances.find(
-      (item: any) => item.asset === protfolioItem.asset
-    );
-    const assetValue = parseFloat(assetBalance!.free) * assetPrice;
-    const amount = parseFloat(
-      (parseFloat(assetBalance!.free) * 0.05).toFixed(
-        protfolioItem.quantityPrecision
-      )
-    );
-    LogService.log(`${amount} ${protfolioItem.asset}: ${assetValue}$`);
-    if (assetValue > protfolioItem.value * 1.05) {
-      return BinanceApiService.sell(protfolioItem.asset + baseCurrency, amount);
-    } else if (assetValue < protfolioItem.value * 0.95) {
-      const buyinQuantiy = parseFloat(
-        ((protfolioItem.value / assetPrice) * 0.052).toFixed(
-          protfolioItem.quantityPrecision
-        )
+    try {
+      await this.rateLimitCheck();
+      const account = await BinanceApiService.binance.account();
+      
+      const symbol = protfolioItem.asset + baseCurrency;
+      const assetPrice = await BinanceApiService.getMarketPrice(symbol);
+      
+      const assetBalance = account.balances.find(
+        (item: any) => item.asset === protfolioItem.asset
       );
-      return BinanceApiService.buy(
-        protfolioItem.asset + baseCurrency,
-        buyinQuantiy
+      
+      if (!assetBalance) {
+        LogService.log(`Asset ${protfolioItem.asset} not found in account balances`);
+        return;
+      }
+      
+      const freeBalance = parseFloat(assetBalance.free);
+      const assetValue = freeBalance * assetPrice;
+      
+      // Skip rebalancing if balance is too small
+      if (freeBalance < 0.001) {
+        LogService.log(`${protfolioItem.asset} balance too small for rebalancing: ${freeBalance}`);
+        return;
+      }
+      
+      const amount = parseFloat(
+        (freeBalance * 0.05).toFixed(protfolioItem.quantityPrecision)
       );
+      
+      LogService.log(`${amount} ${protfolioItem.asset}: ${assetValue.toFixed(2)}$`);
+      
+      // Sell if overweight
+      if (assetValue > protfolioItem.value * 1.05) {
+        if (amount > 0) {
+          await this.rateLimitCheck();
+          return await BinanceApiService.sell(symbol, amount);
+        }
+      }
+      // Buy if underweight
+      else if (assetValue < protfolioItem.value * 0.95) {
+        const buyinQuantity = parseFloat(
+          ((protfolioItem.value / assetPrice) * 0.052).toFixed(
+            protfolioItem.quantityPrecision
+          )
+        );
+        
+        if (buyinQuantity > 0) {
+          await this.rateLimitCheck();
+          return await BinanceApiService.buy(symbol, buyinQuantity);
+        }
+      }
+      
+    } catch (error: any) {
+      LogService.log(`Error rebalancing ${protfolioItem.asset}: ${error.message}`);
+      throw error;
     }
+  }
+
+  // Method to clear caches for cleanup
+  public static clearCaches() {
+    this.priceCache.clear();
   }
 }

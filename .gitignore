@@ -4,3 +4,5 @@ dist
 !dist/app.js
 .cahce
 .angular
+
+/deploy
