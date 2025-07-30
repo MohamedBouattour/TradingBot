@@ -5,7 +5,7 @@ export class MemoryMonitor {
   private intervalId: NodeJS.Timeout | null = null;
   private readonly MEMORY_THRESHOLD_MB = 400; // Alert threshold
   private readonly CRITICAL_THRESHOLD_MB = 500; // Critical threshold
-  private readonly MONITOR_INTERVAL_MS = 60000; // 1 minute
+  private readonly MONITOR_INTERVAL_MS = 15 * 60000; // 1 minute
 
   private constructor() {}
 
@@ -42,14 +42,24 @@ export class MemoryMonitor {
     const rssMB = memUsage.rss / 1024 / 1024;
 
     // Log detailed memory info
-    LogService.log(`Memory Usage - RSS: ${rssMB.toFixed(2)}MB, Heap: ${heapUsedMB.toFixed(2)}MB, External: ${(memUsage.external / 1024 / 1024).toFixed(2)}MB`);
+    LogService.log(
+      `Memory Usage - RSS: ${rssMB.toFixed(2)}MB, Heap: ${heapUsedMB.toFixed(
+        2
+      )}MB, External: ${(memUsage.external / 1024 / 1024).toFixed(2)}MB`
+    );
 
     // Check thresholds
     if (heapUsedMB > this.CRITICAL_THRESHOLD_MB) {
-      LogService.log(`CRITICAL: Memory usage is very high (${heapUsedMB.toFixed(2)}MB)! Consider restarting.`);
+      LogService.log(
+        `CRITICAL: Memory usage is very high (${heapUsedMB.toFixed(
+          2
+        )}MB)! Consider restarting.`
+      );
       this.forceGarbageCollection();
     } else if (heapUsedMB > this.MEMORY_THRESHOLD_MB) {
-      LogService.log(`WARNING: Memory usage is high (${heapUsedMB.toFixed(2)}MB)`);
+      LogService.log(
+        `WARNING: Memory usage is high (${heapUsedMB.toFixed(2)}MB)`
+      );
       this.forceGarbageCollection();
     }
   }
@@ -60,7 +70,9 @@ export class MemoryMonitor {
       global.gc();
       const afterGC = process.memoryUsage().heapUsed / 1024 / 1024;
       const freed = beforeGC - afterGC;
-      LogService.log(`Garbage collection completed. Freed: ${freed.toFixed(2)}MB`);
+      LogService.log(
+        `Garbage collection completed. Freed: ${freed.toFixed(2)}MB`
+      );
     }
   }
 
