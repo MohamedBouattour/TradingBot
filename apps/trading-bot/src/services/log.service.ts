@@ -1,12 +1,35 @@
 import * as fs from "fs";
+import * as path from "path";
+
+interface LogEntry {
+  timestamp: string;
+  level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
+  category: 'SYSTEM' | 'TRADING' | 'REBALANCE' | 'MEMORY' | 'ASSET' | 'DECISION';
+  message: string;
+  data?: any;
+}
 
 export class LogService {
   private static logStream: fs.WriteStream | null = null;
-  private static isShuttingDown = false;
+  private static readonly LOG_FILE = "./output.log";
+  private static readonly MAX_LOG_SIZE = 100 * 1024 * 1024; // 100MB max file size
+  private static currentLogSize = 0;
 
   private static getLogStream(): fs.WriteStream {
     if (!this.logStream || this.logStream.destroyed) {
-      this.logStream = fs.createWriteStream("./output.log", { flags: "a" });
+      // Check if log file exists and get its size
+      if (fs.existsSync(this.LOG_FILE)) {
+        const stats = fs.statSync(this.LOG_FILE);
+        this.currentLogSize = stats.size;
+        
+        // If file is too large, truncate it instead of rotating
+        if (this.currentLogSize > this.MAX_LOG_SIZE) {
+          fs.truncateSync(this.LOG_FILE, 0);
+          this.currentLogSize = 0;
+        }
+      }
+      
+      this.logStream = fs.createWriteStream(this.LOG_FILE, { flags: "a" });
       
       // Handle stream errors
       this.logStream.on('error', (error) => {
@@ -17,14 +40,34 @@ export class LogService {
   }
 
   public static log(...messages: any[]) {
-    if (this.isShuttingDown) return;
-    
+    this.logStructured('INFO', 'SYSTEM', messages.join(' '));
+  }
+
+  public static logStructured(
+    level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG',
+    category: 'SYSTEM' | 'TRADING' | 'REBALANCE' | 'MEMORY' | 'ASSET' | 'DECISION',
+    message: string,
+    data?: any
+  ) {
     try {
-      const timestamp = new Date().toISOString();
-      const logMessage = `${timestamp} ${messages.join(' ')}\n`;
+      const logEntry: LogEntry = {
+        timestamp: new Date().toISOString(),
+        level,
+        category,
+        message,
+        data
+      };
+
+      const logMessage = this.formatLogEntry(logEntry);
       
       const stream = this.getLogStream();
       stream.write(logMessage);
+      this.currentLogSize += Buffer.byteLength(logMessage, 'utf8');
+      
+      // Check if we need to truncate the log file
+      if (this.currentLogSize > this.MAX_LOG_SIZE) {
+        this.truncateLogFile();
+      }
       
       // Also log to console in debug mode
       if (process.env["MODE"] === "DEBUG") {
@@ -35,9 +78,66 @@ export class LogService {
     }
   }
 
-  public static async close(): Promise<void> {
-    this.isShuttingDown = true;
+  private static formatLogEntry(entry: LogEntry): string {
+    const baseLog = `${entry.timestamp} [${entry.level}] [${entry.category}] ${entry.message}`;
     
+    if (entry.data) {
+      const dataStr = typeof entry.data === 'object'
+        ? JSON.stringify(entry.data, null, 2)
+        : entry.data.toString();
+      return `${baseLog}\n${dataStr}\n`;
+    }
+    
+    return `${baseLog}\n`;
+  }
+
+  private static truncateLogFile() {
+    try {
+      if (this.logStream) {
+        this.logStream.end();
+        this.logStream = null;
+      }
+      
+      // Keep only the last 50% of the file
+      const content = fs.readFileSync(this.LOG_FILE, 'utf8');
+      const lines = content.split('\n');
+      const keepLines = lines.slice(-Math.floor(lines.length / 2));
+      
+      fs.writeFileSync(this.LOG_FILE, keepLines.join('\n'));
+      this.currentLogSize = Buffer.byteLength(keepLines.join('\n'), 'utf8');
+      
+      this.logStructured('INFO', 'SYSTEM', 'Log file truncated to prevent excessive growth');
+    } catch (error) {
+      console.error('Failed to truncate log file:', error);
+    }
+  }
+
+  // Convenience methods for different log types
+  public static logTradingDecision(message: string, data?: any) {
+    this.logStructured('INFO', 'DECISION', message, data);
+  }
+
+  public static logAssetValue(message: string, data?: any) {
+    this.logStructured('INFO', 'ASSET', message, data);
+  }
+
+  public static logRebalance(message: string, data?: any) {
+    this.logStructured('INFO', 'REBALANCE', message, data);
+  }
+
+  public static logMemoryStats(message: string, data?: any) {
+    this.logStructured('INFO', 'MEMORY', message, data);
+  }
+
+  public static logError(message: string, data?: any) {
+    this.logStructured('ERROR', 'SYSTEM', message, data);
+  }
+
+  public static logWarning(message: string, data?: any) {
+    this.logStructured('WARN', 'SYSTEM', message, data);
+  }
+
+  public static async close(): Promise<void> {
     if (this.logStream && !this.logStream.destroyed) {
       return new Promise((resolve) => {
         this.logStream!.end(() => {
@@ -48,14 +148,4 @@ export class LogService {
     }
   }
 
-  public static async flush(): Promise<void> {
-    if (this.logStream && !this.logStream.destroyed) {
-      return new Promise((resolve, reject) => {
-        this.logStream!.write('', (error) => {
-          if (error) reject(error);
-          else resolve();
-        });
-      });
-    }
-  }
 }

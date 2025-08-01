@@ -327,20 +327,21 @@ export class BinanceApiService {
       );
 
       if (!assetBalance) {
-        LogService.log(
-          `Asset ${protfolioItem.asset} not found in account balances`
-        );
+        LogService.logRebalance(`${protfolioItem.asset}: ERROR - Asset not found in account balances`);
         return;
       }
 
       const freeBalance = parseFloat(assetBalance.free);
-      const assetValue = freeBalance * assetPrice;
+      const lockedBalance = parseFloat(assetBalance.locked);
+      const totalBalance = freeBalance + lockedBalance;
+      const assetValue = totalBalance * assetPrice;
+
+      // Log current asset status in readable format
+      LogService.logRebalance(`${protfolioItem.asset}: $${assetValue.toFixed(2)} / $${protfolioItem.value.toFixed(2)} (${(((assetValue - protfolioItem.value) / protfolioItem.value) * 100).toFixed(1)}%)`);
 
       // Skip rebalancing if balance is too small
       if (freeBalance < 0.001) {
-        LogService.log(
-          `${protfolioItem.asset} balance too small for rebalancing: ${freeBalance}`
-        );
+        LogService.logRebalance(`${protfolioItem.asset}: SKIP - Balance too small (${freeBalance})`);
         return;
       }
 
@@ -348,18 +349,22 @@ export class BinanceApiService {
         (freeBalance * 0.05).toFixed(protfolioItem.quantityPrecision)
       );
 
-      LogService.log(
-        `${amount} ${protfolioItem.asset}: ${assetValue.toFixed(2)}$`
-      );
-
-      // Sell if overweight
+      // Sell if overweight (current value > target * 1.05)
       if (assetValue > protfolioItem.value * 1.05) {
         if (amount > 0 && amount * assetPrice >= 5) {
+          LogService.logRebalance(`${protfolioItem.asset}: SELL ${amount} (~$${(amount * assetPrice).toFixed(2)}) - OVERWEIGHT`);
+          
           await this.rateLimitCheck();
-          return await BinanceApiService.sell(symbol, amount);
+          const order = await BinanceApiService.sell(symbol, amount);
+          
+          LogService.logRebalance(`${protfolioItem.asset}: SELL completed - ${order.status} (${order.executedQty})`);
+          
+          return order;
+        } else {
+          LogService.logRebalance(`${protfolioItem.asset}: SELL skipped - Value too low ($${(amount * assetPrice).toFixed(2)})`);
         }
       }
-      // Buy if underweight
+      // Buy if underweight (current value < target * 0.95)
       else if (assetValue < protfolioItem.value * 0.95) {
         const buyinQuantity = parseFloat(
           ((protfolioItem.value / assetPrice) * 0.052).toFixed(
@@ -368,14 +373,27 @@ export class BinanceApiService {
         );
 
         if (buyinQuantity > 0) {
+          LogService.logRebalance(`${protfolioItem.asset}: BUY ${buyinQuantity} (~$${(buyinQuantity * assetPrice).toFixed(2)}) - UNDERWEIGHT`);
+          
           await this.rateLimitCheck();
-          return await BinanceApiService.buy(symbol, buyinQuantity);
+          const order = await BinanceApiService.buy(symbol, buyinQuantity);
+          
+          LogService.logRebalance(`${protfolioItem.asset}: BUY completed - ${order.status} (${order.executedQty})`);
+          
+          return order;
+        } else {
+          LogService.logRebalance(`${protfolioItem.asset}: BUY skipped - Zero quantity calculated`);
         }
+      } else {
+        LogService.logRebalance(`${protfolioItem.asset}: BALANCED - No action needed`);
       }
     } catch (error: any) {
-      LogService.log(
-        `Error rebalancing ${protfolioItem.asset}: ${error.message}`
-      );
+      LogService.logError(`Error rebalancing ${protfolioItem.asset}: ${error.message}`, {
+        asset: protfolioItem.asset,
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
+      });
       throw error;
     }
   }

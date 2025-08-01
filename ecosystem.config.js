@@ -1,7 +1,7 @@
 module.exports = {
   apps: [{
-    name: 'trading-bot',
-    script: './dist/bot.js',
+    name: 'bot',
+    script: './bot.js',
     instances: 1,
     exec_mode: 'fork',
     max_memory_restart: '512M',
