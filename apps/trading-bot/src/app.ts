@@ -151,7 +151,9 @@ async function main() {
       LogService.logStructured(
         "INFO",
         "SYSTEM",
-        "Waiting for next candle to open"
+        "Waiting for next candle to open " +
+          (timeToCloseCurrentCandle / (1000 * 60)).toFixed(2) +
+          " munites to open"
       );
       await delay(timeToCloseCurrentCandle + 1000);
     }
