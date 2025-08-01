@@ -81,13 +81,7 @@ export class LogService {
   private static formatLogEntry(entry: LogEntry): string {
     const baseLog = `${entry.timestamp} [${entry.level}] [${entry.category}] ${entry.message}`;
     
-    if (entry.data) {
-      const dataStr = typeof entry.data === 'object'
-        ? JSON.stringify(entry.data, null, 2)
-        : entry.data.toString();
-      return `${baseLog}\n${dataStr}\n`;
-    }
-    
+    // Simply ignore the data parameter - no JSON logging
     return `${baseLog}\n`;
   }
 
