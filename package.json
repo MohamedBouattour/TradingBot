@@ -12,6 +12,7 @@
     "build-log": "esbuild ./apps/log-streaming/src/main.ts  --bundle --platform=node --outfile=dist/log/app.js --external:@nestjs/microservices --external:@nestjs/microservices/microservices-module --external:class-transformer --external:class-validator --outfile=dist/log.js",
     "dev": "npm run build:watch & npm run serve",
     "test": "npx jest --coverage",
+    "deploy-bot": "powershell -ExecutionPolicy Bypass -File deploy/deploy-bot.ps1",
     "ng": "ng",
     "start-ui": "ng serve",
     "build-ui": "ng build",

@@ -1,7 +1,7 @@
 import { PortfolioItem } from "./models/portfolio-item.model";
 
 // Core trading configuration
-export const TIME_FRAME = "30m";
+export const TIME_FRAME = "1h";
 export const ASSET = "BTC";
 export const BASE_CURRENCY = "USDT";
 export const PAIR = ASSET + BASE_CURRENCY;
