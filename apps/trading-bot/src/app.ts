@@ -260,23 +260,15 @@ export async function calculateRoi() {
   const rio = ((total - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
   const pnl = total - INITIAL_BALANCE;
 
-  const roiData = {
-    assetValue: {
-      [ASSET]: assetValue[0].toFixed(2),
-      [BASE_CURRENCY]: assetValue[1].toFixed(2),
-      total: total.toFixed(2),
-    },
-    performance: {
-      initialBalance: INITIAL_BALANCE.toFixed(2),
-      currentValue: total.toFixed(2),
-      roi: rio.toFixed(2) + "%",
-      pnl: pnl.toFixed(2),
-      pnlStatus: pnl >= 0 ? "PROFIT" : "LOSS",
-    },
-    timestamp: new Date().toISOString(),
-  };
+  // Create structured log message
+  const portfolioInfo = `${ASSET}: $${assetValue[0].toFixed(2)} | ${BASE_CURRENCY}: $${assetValue[1].toFixed(2)} | Total: $${total.toFixed(2)} | ROI: ${rio.toFixed(2)}% | PNL: $${pnl.toFixed(2)} (${pnl >= 0 ? "PROFIT" : "LOSS"})`;
+  
+  const structuredMessage = `
+###################################################################################
+# ${portfolioInfo.padEnd(59)} #
+###################################################################################`;
 
-  LogService.logAssetValue("Portfolio ROI calculation", roiData);
+  LogService.logAssetValue(structuredMessage);
   return rio;
 }
 
@@ -320,7 +312,7 @@ async function rebalancePorfolio() {
       (r) => r.status === "ERROR"
     ).length;
 
-    LogService.logRebalance("Portfolio rebalancing completed");
+    LogService.logRebalance("----------Portfolio rebalancing completed----------");
     /* LogService.logRebalance('Portfolio rebalancing completed', {
       duration: `${rebalanceEndTime - rebalanceStartTime}ms`,
       results: {
