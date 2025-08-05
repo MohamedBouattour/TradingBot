@@ -5,4 +5,4 @@
 sudo pkill -f node
 sleep 2
 
-sudo nohup node app.js > output.log 2>&1 & disown
+sudo nohup node bot.js > output.log 2>&1 & disown

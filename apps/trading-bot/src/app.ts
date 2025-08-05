@@ -21,7 +21,6 @@ import { MemoryMonitor } from "./utils/memory-monitor";
 
 config();
 
-// Global state management
 let retryCount = 0;
 const RETRY_DELAY = 30000; // 30 seconds
 
@@ -29,7 +28,6 @@ const interval = new TickInterval(Interval[TIME_FRAME]);
 const strategyManager = new StrategyManager(new RSIStrategy());
 const memoryMonitor = MemoryMonitor.getInstance();
 
-// Enhanced memory logging function with structured format
 function logMemoryUsage() {
   const stats = memoryMonitor.getMemoryStats();
   const memoryData = {
@@ -50,13 +48,10 @@ function logMemoryUsage() {
 async function runTradingBot(candlestick: Candle[]) {
   try {
     const startTime = Date.now();
-
-    // Limit candlestick array size to prevent memory growth - reduced from 200 to 100
     const limitedCandlesticks = candlestick.slice(-100);
     const currentPrice =
       limitedCandlesticks[limitedCandlesticks.length - 1].close;
 
-    // Log current market data
     LogService.logAssetValue("Current market data", {
       asset: ASSET,
       price: currentPrice,
@@ -67,7 +62,6 @@ async function runTradingBot(candlestick: Candle[]) {
     const { label, tp } = strategyManager.executeStrategy(limitedCandlesticks);
     const strategyExecutionTime = Date.now() - startTime;
 
-    // Log trading decision with detailed information
     const decisionData = {
       decision: label,
       currentPrice: currentPrice,
@@ -98,9 +92,7 @@ async function runTradingBot(candlestick: Candle[]) {
       await TradeService.handleBuy(tp);
     }
 
-    // Log memory usage periodically (further reduced frequency)
     if (Math.random() < 0.002) {
-      // 0.2% chance
       logMemoryUsage();
     }
   } catch (error: any) {
@@ -108,7 +100,7 @@ async function runTradingBot(candlestick: Candle[]) {
       stack: error.stack,
       timestamp: new Date().toISOString(),
     });
-    throw error; // Re-throw to be handled by main loop
+    throw error;
   }
 }
 
@@ -130,16 +122,13 @@ async function main() {
     startupData
   );
 
-  // Start memory monitoring
   memoryMonitor.startMonitoring();
 
   try {
-    // Initial setup
     let candlesticks = await MarketService.fetchCandlestickData(
       PAIR,
       interval.getInterval()
     );
-
     const serverTime = (await BinanceApiService.getServerTime()).serverTime;
     const timeToCloseCurrentCandle =
       new Date(candlesticks[candlesticks.length - 1].closeTime).getTime() -
@@ -173,38 +162,27 @@ async function main() {
       startupCompleteData
     );
 
-    // Main trading loop with proper error handling
     while (true) {
       try {
-        // Fetch fresh candlestick data
         candlesticks = await MarketService.fetchCandlestickData(
           PAIR,
           interval.getInterval()
         );
-
-        // Run trading strategy
         await runTradingBot(candlesticks.slice(0, -1));
 
-        // Calculate timing for next candle
         const currentServerTime = (await BinanceApiService.getServerTime())
           .serverTime;
         const nextCandleTime =
           new Date(candlesticks[candlesticks.length - 1].closeTime).getTime() -
           currentServerTime;
-
-        // Wait for next candle with minimum delay
         const waitTime = Math.max(nextCandleTime + 500, 1000);
         await delay(waitTime);
 
-        // Reset retry count on successful iteration
         retryCount = 0;
 
-        // Periodic memory cleanup - reduced frequency and added memory threshold
         if (global.gc && Math.random() < 0.005) {
-          // 0.5% chance
           const memUsage = process.memoryUsage();
           if (memUsage.heapUsed > 200 * 1024 * 1024) {
-            // Only GC if heap > 200MB
             global.gc();
           }
         }
@@ -213,7 +191,7 @@ async function main() {
         const backoffDelay = Math.min(
           RETRY_DELAY * Math.pow(2, Math.min(retryCount - 1, 5)),
           300000
-        ); // Max 5 minutes
+        );
 
         const errorData = {
           attempt: retryCount,
@@ -238,9 +216,8 @@ async function main() {
 
         await delay(backoffDelay);
 
-        // Reset retry count after successful recovery period
         if (retryCount > 10) {
-          retryCount = 0; // Reset to prevent infinite growth
+          retryCount = 0;
         }
       }
     }
@@ -250,7 +227,7 @@ async function main() {
       stack: error.stack,
       timestamp: new Date().toISOString(),
     });
-    throw error; // Re-throw the error for external handling
+    throw error;
   }
 }
 
@@ -260,13 +237,18 @@ export async function calculateRoi() {
   const rio = ((total - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
   const pnl = total - INITIAL_BALANCE;
 
-  // Create structured log message
-  const portfolioInfo = `${ASSET}: $${assetValue[0].toFixed(2)} | ${BASE_CURRENCY}: $${assetValue[1].toFixed(2)} | Total: $${total.toFixed(2)} | ROI: ${rio.toFixed(2)}% | PNL: $${pnl.toFixed(2)} (${pnl >= 0 ? "PROFIT" : "LOSS"})`;
-  
+  const portfolioInfo = `${ASSET}: $${assetValue[0].toFixed(
+    2
+  )} | ${BASE_CURRENCY}: $${assetValue[1].toFixed(2)} | Total: $${total.toFixed(
+    2
+  )} | ROI: ${rio.toFixed(2)}% | PNL: $${pnl.toFixed(2)} (${
+    pnl >= 0 ? "PROFIT" : "LOSS"
+  })`;
+
   const structuredMessage = `
-###################################################################################
+####################################################################################
 # ${portfolioInfo.padEnd(59)} #
-###################################################################################`;
+####################################################################################`;
 
   LogService.logAssetValue(structuredMessage);
   return rio;
@@ -274,14 +256,12 @@ export async function calculateRoi() {
 
 async function rebalancePorfolio() {
   try {
-    const rebalanceStartTime = Date.now();
     LogService.logRebalance("Starting portfolio rebalancing", {
       portfolioItems: PORTFOLIO.length,
       baseCurrency: BASE_CURRENCY,
       timestamp: new Date().toISOString(),
     });
 
-    // Use Promise.all to properly await all rebalancing operations
     const rebalanceResults = await Promise.all(
       PORTFOLIO.map(async (item) => {
         try {
@@ -304,25 +284,9 @@ async function rebalancePorfolio() {
       })
     );
 
-    const rebalanceEndTime = Date.now();
-    const successCount = rebalanceResults.filter(
-      (r) => r.status === "SUCCESS"
-    ).length;
-    const errorCount = rebalanceResults.filter(
-      (r) => r.status === "ERROR"
-    ).length;
-
-    LogService.logRebalance("----------Portfolio rebalancing completed----------");
-    /* LogService.logRebalance('Portfolio rebalancing completed', {
-      duration: `${rebalanceEndTime - rebalanceStartTime}ms`,
-      results: {
-        total: rebalanceResults.length,
-        successful: successCount,
-        errors: errorCount
-      },
-      details: rebalanceResults,
-      timestamp: new Date().toISOString()
-    }); */
+    LogService.logRebalance(
+      "----------Portfolio rebalancing completed----------"
+    );
   } catch (error: any) {
     LogService.logError(`Error in portfolio rebalancing: ${error.message}`, {
       error: error.message,
@@ -331,4 +295,5 @@ async function rebalancePorfolio() {
     });
   }
 }
+
 main();
