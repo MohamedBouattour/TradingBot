@@ -387,7 +387,7 @@ export class BinanceApiService {
           );
         }
       }
-      // Buy if underweight (current value < target * 0.95)
+      // Buy if underweight (current value < threshold)
       else if (
         assetValue <
         protfolioItem.value * (1 - protfolioItem.threshold)
@@ -408,7 +408,12 @@ export class BinanceApiService {
 
           await this.rateLimitCheck();
           if (buyinQuantity * assetPrice > 5.02) {
-            const order = await BinanceApiService.buy(symbol, buyinQuantity);
+            const order = await BinanceApiService.buy(
+              symbol,
+              buyinQuantity * 2
+            );
+            protfolioItem.value =
+              protfolioItem.value * (1 + protfolioItem.threshold * 2);
             LogService.logRebalance(
               `${protfolioItem.asset}: BUY completed - ${order.status} (${order.executedQty})`
             );

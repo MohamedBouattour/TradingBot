@@ -280,7 +280,6 @@ export async function calculateRoi() {
 
 async function rebalancePorfolio() {
   try {
-    const rebalanceStartTime = Date.now();
     LogService.logRebalance("Starting portfolio rebalancing", {
       portfolioItems: PORTFOLIO.length,
       baseCurrency: BASE_CURRENCY,
@@ -309,28 +308,9 @@ async function rebalancePorfolio() {
         }
       })
     );
-
-    const rebalanceEndTime = Date.now();
-    const successCount = rebalanceResults.filter(
-      (r) => r.status === "SUCCESS"
-    ).length;
-    const errorCount = rebalanceResults.filter(
-      (r) => r.status === "ERROR"
-    ).length;
-
     LogService.logRebalance(
       "----------Portfolio rebalancing completed----------"
     );
-    /* LogService.logRebalance('Portfolio rebalancing completed', {
-      duration: `${rebalanceEndTime - rebalanceStartTime}ms`,
-      results: {
-        total: rebalanceResults.length,
-        successful: successCount,
-        errors: errorCount
-      },
-      details: rebalanceResults,
-      timestamp: new Date().toISOString()
-    }); */
   } catch (error: any) {
     LogService.logError(`Error in portfolio rebalancing: ${error.message}`, {
       error: error.message,
