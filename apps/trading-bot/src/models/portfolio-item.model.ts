@@ -3,4 +3,5 @@ export interface PortfolioItem {
   value: number;
   pricePresision: number;
   quantityPrecision: number;
+  threshold: number;
 }

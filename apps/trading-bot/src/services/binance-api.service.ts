@@ -357,11 +357,13 @@ export class BinanceApiService {
       }
 
       const amount = parseFloat(
-        (freeBalance * 0.05).toFixed(protfolioItem.quantityPrecision)
+        (freeBalance * protfolioItem.threshold).toFixed(
+          protfolioItem.quantityPrecision
+        )
       );
 
       // Sell if overweight (current value > target * 1.05)
-      if (assetValue > protfolioItem.value * 1.05) {
+      if (assetValue > protfolioItem.value * (1 + protfolioItem.threshold)) {
         if (amount > 0 && amount * assetPrice >= 5) {
           LogService.logRebalance(
             `${protfolioItem.asset}: SELL ${amount} (~$${(
@@ -386,11 +388,15 @@ export class BinanceApiService {
         }
       }
       // Buy if underweight (current value < target * 0.95)
-      else if (assetValue < protfolioItem.value * 0.95) {
+      else if (
+        assetValue <
+        protfolioItem.value * (1 - protfolioItem.threshold)
+      ) {
         const buyinQuantity = parseFloat(
-          ((protfolioItem.value / assetPrice) * 0.052).toFixed(
-            protfolioItem.quantityPrecision
-          )
+          (
+            (protfolioItem.value / assetPrice) *
+            (protfolioItem.threshold + 0.02)
+          ).toFixed(protfolioItem.quantityPrecision)
         );
 
         if (buyinQuantity > 0) {
@@ -414,9 +420,9 @@ export class BinanceApiService {
           );
         }
       } else {
-        LogService.logRebalance(
+        /* LogService.logRebalance(
           `${protfolioItem.asset}: BALANCED - No action needed`
-        );
+        ); */
       }
     } catch (error: any) {
       LogService.logError(

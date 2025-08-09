@@ -261,8 +261,14 @@ export async function calculateRoi() {
   const pnl = total - INITIAL_BALANCE;
 
   // Create structured log message
-  const portfolioInfo = `${ASSET}: $${assetValue[0].toFixed(2)} | ${BASE_CURRENCY}: $${assetValue[1].toFixed(2)} | Total: $${total.toFixed(2)} | ROI: ${rio.toFixed(2)}% | PNL: $${pnl.toFixed(2)} (${pnl >= 0 ? "PROFIT" : "LOSS"})`;
-  
+  const portfolioInfo = `${ASSET}: $${assetValue[0].toFixed(
+    2
+  )} | ${BASE_CURRENCY}: $${assetValue[1].toFixed(2)} | Total: $${total.toFixed(
+    2
+  )} | ROI: ${rio.toFixed(2)}% | PNL: $${pnl.toFixed(2)} (${
+    pnl >= 0 ? "PROFIT" : "LOSS"
+  })`;
+
   const structuredMessage = `
 ###################################################################################
 # ${portfolioInfo.padEnd(59)} #
@@ -312,7 +318,9 @@ async function rebalancePorfolio() {
       (r) => r.status === "ERROR"
     ).length;
 
-    LogService.logRebalance("----------Portfolio rebalancing completed----------");
+    LogService.logRebalance(
+      "----------Portfolio rebalancing completed----------"
+    );
     /* LogService.logRebalance('Portfolio rebalancing completed', {
       duration: `${rebalanceEndTime - rebalanceStartTime}ms`,
       results: {
