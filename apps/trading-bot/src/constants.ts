@@ -1,7 +1,7 @@
 import { PortfolioItem } from "./models/portfolio-item.model";
 
 // Core trading configuration
-export const TIME_FRAME = "30m";
+export const TIME_FRAME = "1h";
 export const ASSET = "BTC";
 export const BASE_CURRENCY = "USDT";
 export const PAIR = ASSET + BASE_CURRENCY;
@@ -10,7 +10,7 @@ export const PAIR = ASSET + BASE_CURRENCY;
 export const AMOUNT_PRECISION = 5;
 export const PRICE_PRECISION = 0;
 export const BALANCE_POSTIOTION_RATIO = 0.333;
-export const TARGET_ROI = 1.02;
+export const TARGET_ROI = 1.03;
 export const INITIAL_BALANCE = 341 - 55;
 
 // Strategy-specific constants (only used by specific strategies)
