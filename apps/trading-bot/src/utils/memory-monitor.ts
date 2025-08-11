@@ -5,7 +5,7 @@ export class MemoryMonitor {
   private intervalId: NodeJS.Timeout | null = null;
   private readonly MEMORY_THRESHOLD_MB = 400; // Alert threshold
   private readonly CRITICAL_THRESHOLD_MB = 500; // Critical threshold
-  private readonly MONITOR_INTERVAL_MS = 15 * 60000; // 1 minute
+  private readonly MONITOR_INTERVAL_MS = 60 * 60000; // 1 minute
 
   private constructor() {}
 

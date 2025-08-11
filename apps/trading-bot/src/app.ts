@@ -29,24 +29,6 @@ const interval = new TickInterval(Interval[TIME_FRAME]);
 const strategyManager = new StrategyManager(new RSIStrategy());
 const memoryMonitor = MemoryMonitor.getInstance();
 
-// Enhanced memory logging function with structured format
-function logMemoryUsage() {
-  const stats = memoryMonitor.getMemoryStats();
-  const memoryData = {
-    rss: `${stats.rss}MB`,
-    heap: {
-      used: `${stats.heapUsed}MB`,
-      total: `${stats.heapTotal}MB`,
-      utilization: `${((stats.heapUsed / stats.heapTotal) * 100).toFixed(1)}%`,
-    },
-    external: `${stats.external}MB`,
-    arrayBuffers: `${stats.arrayBuffers}MB`,
-    timestamp: new Date().toISOString(),
-  };
-
-  LogService.logMemoryStats("Current memory usage", memoryData);
-}
-
 async function runTradingBot(candlestick: Candle[]) {
   try {
     const startTime = Date.now();
@@ -55,14 +37,6 @@ async function runTradingBot(candlestick: Candle[]) {
     const limitedCandlesticks = candlestick.slice(-100);
     const currentPrice =
       limitedCandlesticks[limitedCandlesticks.length - 1].close;
-
-    // Log current market data
-    LogService.logAssetValue("Current market data", {
-      asset: ASSET,
-      price: currentPrice,
-      timestamp: new Date().toISOString(),
-      candlesticksCount: limitedCandlesticks.length,
-    });
 
     const { label, tp } = strategyManager.executeStrategy(limitedCandlesticks);
     const strategyExecutionTime = Date.now() - startTime;
@@ -78,7 +52,11 @@ async function runTradingBot(candlestick: Candle[]) {
       pair: PAIR,
     };
 
-    LogService.logTradingDecision(`Strategy decision: ${label}`, decisionData);
+    label.length &&
+      LogService.logTradingDecision(
+        `Strategy decision: ${label}`,
+        decisionData
+      );
 
     await calculateRoi();
     await rebalancePorfolio();
@@ -96,12 +74,6 @@ async function runTradingBot(candlestick: Candle[]) {
 
       LogService.logTradingDecision("BUY signal detected", buySignalData);
       await TradeService.handleBuy(tp);
-    }
-
-    // Log memory usage periodically (further reduced frequency)
-    if (Math.random() < 0.002) {
-      // 0.2% chance
-      logMemoryUsage();
     }
   } catch (error: any) {
     LogService.logError(`Error in runTradingBot: ${error.message}`, {
