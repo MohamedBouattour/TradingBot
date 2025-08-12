@@ -11,7 +11,7 @@ export const AMOUNT_PRECISION = 5;
 export const PRICE_PRECISION = 0;
 export const BALANCE_POSTIOTION_RATIO = 0.333;
 export const TARGET_ROI = 1.02;
-export const INITIAL_BALANCE = 341 - 55;
+export const INITIAL_BALANCE = 341 - 55 - 15;
 
 // Strategy-specific constants (only used by specific strategies)
 export const SHORT_MA = 25;
@@ -25,43 +25,43 @@ export const MAX_TARGET_ROI = TARGET_ROI;
 export const PORTFOLIO: PortfolioItem[] = [
   {
     asset: "ETH",
-    value: 100,
-    threshold: 0.05,
+    value: 125,
+    threshold: 0.045,
     pricePresision: 2,
     quantityPrecision: 4,
   },
   {
     asset: "BNB",
-    value: 100,
-    threshold: 0.05,
+    value: 125,
+    threshold: 0.045,
     pricePresision: 2,
     quantityPrecision: 3,
   },
   {
     asset: "SOL",
-    value: 100,
-    threshold: 0.05,
+    value: 125,
+    threshold: 0.045,
     pricePresision: 2,
     quantityPrecision: 3,
   },
   {
     asset: "SUI",
-    value: 30,
-    threshold: 0.2,
+    value: 40,
+    threshold: 0.13,
     pricePresision: 4,
     quantityPrecision: 1,
   },
   {
     asset: "DOT",
-    value: 30,
-    threshold: 0.2,
+    value: 40,
+    threshold: 0.13,
     pricePresision: 3,
     quantityPrecision: 2,
   },
   {
     asset: "ARB",
-    value: 30,
-    threshold: 0.2,
+    value: 40,
+    threshold: 0.13,
     pricePresision: 4,
     quantityPrecision: 1,
   },

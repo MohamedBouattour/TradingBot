@@ -410,10 +410,10 @@ export class BinanceApiService {
           if (buyinQuantity * assetPrice > 5.02) {
             const order = await BinanceApiService.buy(
               symbol,
-              buyinQuantity * 2
+              buyinQuantity
             );
             protfolioItem.value =
-              protfolioItem.value * (1 + protfolioItem.threshold * 2);
+              protfolioItem.value * (1 + protfolioItem.threshold);
             LogService.logRebalance(
               `${protfolioItem.asset}: BUY completed - ${order.status} (${order.executedQty})`
             );

@@ -242,9 +242,9 @@ export async function calculateRoi() {
   })`;
 
   const structuredMessage = `
-###################################################################################
+#####################################################################################
 # ${portfolioInfo.padEnd(59)} #
-###################################################################################`;
+#####################################################################################`;
 
   LogService.logAssetValue(structuredMessage);
   return rio;
@@ -252,11 +252,12 @@ export async function calculateRoi() {
 
 async function rebalancePorfolio() {
   try {
-    LogService.logRebalance("Starting portfolio rebalancing", {
-      portfolioItems: PORTFOLIO.length,
-      baseCurrency: BASE_CURRENCY,
-      timestamp: new Date().toISOString(),
-    });
+    LogService.logRebalance(
+      `Starting portfolio rebalancing ${PORTFOLIO.reduce(
+        (result, current) => (result += current.value),
+        0
+      )} $`
+    );
 
     // Use Promise.all to properly await all rebalancing operations
     const rebalanceResults = await Promise.all(
