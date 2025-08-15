@@ -330,13 +330,18 @@ export class BinanceApiService {
         LogService.logRebalance(
           `${protfolioItem.asset}: ERROR - Asset not found in account balances`
         );
+        // Set to 0 if asset not found
+        protfolioItem.valueInBaseCurrency = 0;
         return;
       }
 
-      const freeBalance = parseFloat(assetBalance.free);
-      const lockedBalance = parseFloat(assetBalance.locked);
+      const freeBalance = parseFloat(assetBalance.free || '0');
+      const lockedBalance = parseFloat(assetBalance.locked || '0');
       const totalBalance = freeBalance + lockedBalance;
       const assetValue = totalBalance * assetPrice;
+
+      // Store the current USD value in the portfolio item
+      protfolioItem.valueInBaseCurrency = assetValue;
 
       // Log current asset status in readable format
       LogService.logRebalance(

@@ -58,8 +58,8 @@ async function runTradingBot(candlestick: Candle[]) {
         decisionData
       );
 
-    await calculateRoi();
     await rebalancePorfolio();
+    await calculateRoi();
 
     if (label === Operation.BUY && tp > currentPrice) {
       const buySignalData = {
@@ -118,8 +118,8 @@ async function main() {
       serverTime;
 
     if (process?.env?.["MODE"] !== "DEBUG" && timeToCloseCurrentCandle > 0) {
-      await calculateRoi();
       await rebalancePorfolio();
+      await calculateRoi();
       LogService.logStructured(
         "INFO",
         "SYSTEM",
@@ -228,26 +228,38 @@ async function main() {
 
 export async function calculateRoi() {
   const assetValue = await BinanceApiService.getAssetValue();
-  const total = assetValue[0] + assetValue[1];
-  const rio = ((total - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
+
+  // Use stored portfolio values in USD (calculated during rebalance)
+  const portfolioValueInUSD = PORTFOLIO.reduce((total, item) => {
+    return total + (item.valueInBaseCurrency || 0);
+  }, 0);
+  
+  // Debug log for total portfolio value
+  console.log(`Total portfolio value: $${portfolioValueInUSD.toFixed(2)}`);
+
+  // Total = BASE_CURRENCY value + USDT value + portfolio items value
+  const total = assetValue[0] + assetValue[1] + portfolioValueInUSD;
+  const roi = ((total - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
   const pnl = total - INITIAL_BALANCE;
 
-  // Create structured log message
+  // Create structured log message with portfolio breakdown
   const portfolioInfo = `${ASSET}: $${assetValue[0].toFixed(
     2
-  )} | ${BASE_CURRENCY}: $${assetValue[1].toFixed(2)} | Total: $${total.toFixed(
+  )} | ${BASE_CURRENCY}: $${assetValue[1].toFixed(
     2
-  )} | ROI: ${rio.toFixed(2)}% | PNL: $${pnl.toFixed(2)} (${
+  )} | Portfolio: $${portfolioValueInUSD.toFixed(2)} | Total: $${total.toFixed(
+    2
+  )} | ROI: ${roi.toFixed(2)}% | PNL: $${pnl.toFixed(2)} (${
     pnl >= 0 ? "PROFIT" : "LOSS"
   })`;
 
   const structuredMessage = `
 #####################################################################################
-# ${portfolioInfo.padEnd(59)} #
+# ${portfolioInfo.padEnd(79)} #
 #####################################################################################`;
 
   LogService.logAssetValue(structuredMessage);
-  return rio;
+  return roi;
 }
 
 async function rebalancePorfolio() {

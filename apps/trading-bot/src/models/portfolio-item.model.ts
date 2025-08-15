@@ -4,4 +4,5 @@ export interface PortfolioItem {
   pricePresision: number;
   quantityPrecision: number;
   threshold: number;
+  valueInBaseCurrency?: number; // Optional field to store value in USD
 }
