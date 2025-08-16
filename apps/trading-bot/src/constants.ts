@@ -2,6 +2,13 @@ import { PortfolioItem } from "./models/portfolio-item.model";
 // Portfolio configuration
 export let PORTFOLIO: PortfolioItem[] = [
   {
+    asset: "BTC",
+    value: 160,
+    threshold: 0.045,
+    pricePresision: 2,
+    quantityPrecision: 5,
+  },
+  {
     asset: "ETH",
     value: 150,
     threshold: 0.045,
