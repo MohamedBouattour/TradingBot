@@ -1,14 +1,18 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { PortfolioItemDto, CreatePortfolioItemDto, UpdatePortfolioItemDto } from './dto/portfolio-item.dto';
-import { PortfolioItemEntity } from '../entities/portfolio-item.entity';
+import { Injectable, OnModuleInit } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import {
+  PortfolioItemDto,
+  CreatePortfolioItemDto,
+  UpdatePortfolioItemDto,
+} from "./dto/portfolio-item.dto";
+import { PortfolioItemEntity } from "../entities/portfolio-item.entity";
 
 @Injectable()
 export class PortfolioService implements OnModuleInit {
   constructor(
     @InjectRepository(PortfolioItemEntity)
-    private portfolioRepository: Repository<PortfolioItemEntity>,
+    private portfolioRepository: Repository<PortfolioItemEntity>
   ) {}
 
   async onModuleInit() {
@@ -74,30 +78,24 @@ export class PortfolioService implements OnModuleInit {
     return entity ? this.entityToDto(entity) : null;
   }
 
-  async create(createPortfolioItemDto: CreatePortfolioItemDto): Promise<PortfolioItemDto> {
+  async create(
+    createPortfolioItemDto: CreatePortfolioItemDto
+  ): Promise<PortfolioItemDto> {
     const entity = this.portfolioRepository.create(createPortfolioItemDto);
     const savedEntity = await this.portfolioRepository.save(entity);
     return this.entityToDto(savedEntity);
   }
 
-  async update(asset: string, updatePortfolioItemDto: UpdatePortfolioItemDto): Promise<PortfolioItemDto | null> {
+  async update(
+    asset: string,
+    updatePortfolioItemDto: UpdatePortfolioItemDto
+  ): Promise<PortfolioItemDto | null> {
     const entity = await this.portfolioRepository.findOne({ where: { asset } });
     if (!entity) {
       return null;
     }
 
     Object.assign(entity, updatePortfolioItemDto);
-    const savedEntity = await this.portfolioRepository.save(entity);
-    return this.entityToDto(savedEntity);
-  }
-
-  async updateValueInBaseCurrency(asset: string, valueInBaseCurrency: number): Promise<PortfolioItemDto | null> {
-    const entity = await this.portfolioRepository.findOne({ where: { asset } });
-    if (!entity) {
-      return null;
-    }
-
-    entity.valueInBaseCurrency = valueInBaseCurrency;
     const savedEntity = await this.portfolioRepository.save(entity);
     return this.entityToDto(savedEntity);
   }
@@ -114,7 +112,10 @@ export class PortfolioService implements OnModuleInit {
 
   async getTotalValueInBaseCurrency(): Promise<number> {
     const entities = await this.portfolioRepository.find();
-    return entities.reduce((total, item) => total + Number(item.valueInBaseCurrency || 0), 0);
+    return entities.reduce(
+      (total, item) => total + Number(item.valueInBaseCurrency || 0),
+      0
+    );
   }
 
   private entityToDto(entity: PortfolioItemEntity): PortfolioItemDto {
@@ -124,7 +125,57 @@ export class PortfolioService implements OnModuleInit {
       pricePresision: entity.pricePresision,
       quantityPrecision: entity.quantityPrecision,
       threshold: Number(entity.threshold),
-      valueInBaseCurrency: entity.valueInBaseCurrency ? Number(entity.valueInBaseCurrency) : undefined,
+      valueInBaseCurrency: entity.valueInBaseCurrency
+        ? Number(entity.valueInBaseCurrency)
+        : undefined,
     };
+  }
+
+  async syncPortfolioItem(
+    syncData: CreatePortfolioItemDto
+  ): Promise<PortfolioItemDto> {
+    const result = await this.portfolioRepository.upsert(
+      {
+        asset: syncData.asset,
+        value: syncData.value,
+        threshold: syncData.threshold,
+        pricePresision: syncData.pricePresision,
+        quantityPrecision: syncData.quantityPrecision,
+        valueInBaseCurrency: 0,
+      },
+      {
+        conflictPaths: ["asset"],
+      }
+    );
+
+    const entity = await this.portfolioRepository.findOne({
+      where: { asset: syncData.asset },
+    });
+    return this.entityToDto(entity!);
+  }
+
+  // Update existing method to handle missing entities
+  async updateValueInBaseCurrency(
+    asset: string,
+    valueInBaseCurrency: number
+  ): Promise<PortfolioItemDto | null> {
+    let entity = await this.portfolioRepository.findOne({ where: { asset } });
+
+    if (!entity) {
+      // Create with default values if missing
+      entity = this.portfolioRepository.create({
+        asset,
+        value: 0,
+        threshold: 0.045,
+        pricePresision: 2,
+        quantityPrecision: 3,
+        valueInBaseCurrency,
+      });
+    } else {
+      entity.valueInBaseCurrency = valueInBaseCurrency;
+    }
+
+    const savedEntity = await this.portfolioRepository.save(entity);
+    return this.entityToDto(savedEntity);
   }
 }

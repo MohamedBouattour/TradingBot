@@ -9,11 +9,12 @@ import {
   TradingDecision,
   LogsResponse,
 } from "../../core/services/bot-api.service";
+import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.component";
 
 @Component({
   selector: "app-dashboard",
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, PieChartComponent],
   template: `
     <div class="dashboard">
       <header class="dashboard-header">
@@ -140,6 +141,24 @@ import {
           <div class="no-data" *ngIf="!portfolioStats">
             <p>No portfolio data available</p>
           </div>
+        </div>
+
+        <!-- 🔥 NEW: Target Allocation Pie Chart -->
+        <div class="card chart-card">
+          <app-pie-chart
+            title="Target Portfolio Allocation"
+            [data]="getTargetPieData()"
+          >
+          </app-pie-chart>
+        </div>
+
+        <!-- 🔥 NEW: Current Allocation Pie Chart -->
+        <div class="card chart-card">
+          <app-pie-chart
+            title="Current Portfolio Allocation"
+            [data]="getCurrentPieData()"
+          >
+          </app-pie-chart>
         </div>
 
         <!-- Trading Stats Card -->
@@ -369,6 +388,13 @@ import {
         color: #333;
         border-bottom: 2px solid #eee;
         padding-bottom: 10px;
+      }
+
+      /* 🔥 NEW: Chart card styling */
+      .chart-card {
+        height: 400px;
+        display: flex;
+        flex-direction: column;
       }
 
       .roi-stats,
@@ -610,43 +636,42 @@ import {
         display: flex;
         flex-direction: column;
       }
-      
+
       .logs-card h2 {
         color: #0f0;
         border-bottom: 1px solid #333;
         margin-bottom: 10px;
       }
-      
+
       .logs-monitor {
         flex: 1;
         overflow-y: auto;
         white-space: pre-wrap;
       }
-      
+
       .log-line {
         padding: 2px 4px;
         line-height: 1.4;
       }
-      
+
       .log-line.buy {
         color: #00ff00; /* green text for BUY */
       }
-      
+
       .log-line.sell {
         color: #ff4444; /* red text for SELL */
       }
-      
+
       .log-line.error {
         color: #ffae00; /* yellow/orange for errors */
       }
-      
+
       .logs-footer {
         margin-top: 10px;
         font-size: 12px;
         color: #888;
         text-align: right;
       }
-      
     `,
   ],
 })
@@ -764,5 +789,29 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   formatTime(timestamp: string): string {
     return new Date(timestamp).toLocaleTimeString();
+  }
+
+  getTargetPieData() {
+    if (!this.portfolioStats) return [];
+
+    return this.portfolioStats.assets
+      .filter((asset) => asset.targetValue > 0)
+      .map((asset) => ({
+        name: asset.asset,
+        value: asset.targetPercentage,
+        absoluteValue: asset.targetValue,
+      }));
+  }
+
+  getCurrentPieData() {
+    if (!this.portfolioStats) return [];
+
+    return this.portfolioStats.assets
+      .filter((asset) => asset.currentValue > 0)
+      .map((asset) => ({
+        name: asset.asset,
+        value: asset.currentPercentage,
+        absoluteValue: asset.currentValue,
+      }));
   }
 }

@@ -39,7 +39,9 @@ async function runTradingBot(candlestick: Candle[]) {
     const currentPrice =
       limitedCandlesticks[limitedCandlesticks.length - 1].close;
 
-    const { label, tp } = strategyManager.executeStrategy(limitedCandlesticks);
+    const { tp } = strategyManager.executeStrategy(limitedCandlesticks);
+    //disable strategy
+    const label = "";
     const strategyExecutionTime = Date.now() - startTime;
 
     // Log trading decision with detailed information
@@ -58,7 +60,7 @@ async function runTradingBot(candlestick: Candle[]) {
         `Strategy decision: ${label}`,
         decisionData
       );
-      
+
       // Send trading decision to API
       await ApiClientService.sendTradingDecision(decisionData);
     }
@@ -111,6 +113,9 @@ async function main() {
   memoryMonitor.startMonitoring();
 
   try {
+    // 🔥 ADD THIS: Sync portfolio with database on startup
+    await syncPortfolioWithDatabase();
+    
     // Initial setup
     let candlesticks = await MarketService.fetchCandlestickData(
       PAIR,
@@ -238,12 +243,12 @@ export async function calculateRoi() {
   const portfolioValueInUSD = PORTFOLIO.reduce((total, item) => {
     return total + (item.valueInBaseCurrency || 0);
   }, 0);
-  
+
   // Debug log for total portfolio value
   console.log(`Total portfolio value: $${portfolioValueInUSD.toFixed(2)}`);
 
-  // Total = BASE_CURRENCY value + USDT value + portfolio items value
-  const total = assetValue[0] + assetValue[1] + portfolioValueInUSD;
+  // Total = USDT value + portfolio items value
+  const total = assetValue[1] + portfolioValueInUSD;
   const roi = ((total - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
   const pnl = total - INITIAL_BALANCE;
 
@@ -324,4 +329,72 @@ async function rebalancePorfolio() {
     });
   }
 }
+
+async function syncPortfolioWithDatabase(): Promise<void> {
+  try {
+    LogService.logStructured(
+      "INFO",
+      "SYSTEM",
+      "Synchronizing portfolio with database...",
+      { portfolioItems: PORTFOLIO.length }
+    );
+
+    const syncResults = await Promise.allSettled(
+      PORTFOLIO.map(async (item) => {
+        try {
+          const success = await ApiClientService.syncPortfolioItem(item);
+          if (success) {
+            LogService.logStructured(
+              "INFO",
+              "SYSTEM",
+              `Portfolio item synchronized: ${item.asset}`,
+              {
+                asset: item.asset,
+                value: item.value,
+                threshold: item.threshold,
+              }
+            );
+            return { asset: item.asset, status: "SUCCESS" };
+          } else {
+            throw new Error("API call failed");
+          }
+        } catch (error: any) {
+          LogService.logError(`Failed to sync portfolio item: ${item.asset}`, {
+            asset: item.asset,
+            error: error.message,
+            timestamp: new Date().toISOString(),
+          });
+          return { asset: item.asset, status: "ERROR", error: error.message };
+        }
+      })
+    );
+
+    // Log summary
+    const successful = syncResults.filter(
+      (r) => r.status === "fulfilled" && r.value.status === "SUCCESS"
+    ).length;
+    const failed = syncResults.length - successful;
+
+    LogService.logStructured(
+      "INFO",
+      "SYSTEM",
+      "Portfolio synchronization completed",
+      {
+        total: PORTFOLIO.length,
+        successful,
+        failed,
+      }
+    );
+  } catch (error: any) {
+    LogService.logError(
+      `Error in portfolio synchronization: ${error.message}`,
+      {
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+      }
+    );
+  }
+}
+
 main();

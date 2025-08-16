@@ -1,6 +1,6 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Injectable } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { Observable } from "rxjs";
 
 export interface PortfolioItem {
   asset: string;
@@ -21,6 +21,8 @@ export interface PortfolioStats {
     currentValue: number;
     deviation: number;
     threshold: number;
+    targetPercentage: number;
+    currentPercentage: number;
   }[];
   lastUpdated: string;
 }
@@ -72,10 +74,10 @@ export interface LogsResponse {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: "root",
 })
 export class BotApiService {
-  private readonly apiUrl = window.location.origin + '/api';
+  private readonly apiUrl = window.location.origin + "/api";
 
   constructor(private http: HttpClient) {}
 
@@ -90,15 +92,21 @@ export class BotApiService {
 
   // Trading endpoints
   getTradingDecisions(limit: number = 10): Observable<TradingDecision[]> {
-    return this.http.get<TradingDecision[]>(`${this.apiUrl}/trading/decisions?limit=${limit}`);
+    return this.http.get<TradingDecision[]>(
+      `${this.apiUrl}/trading/decisions?limit=${limit}`
+    );
   }
 
   getLatestTradingDecision(): Observable<TradingDecision> {
-    return this.http.get<TradingDecision>(`${this.apiUrl}/trading/decisions/latest`);
+    return this.http.get<TradingDecision>(
+      `${this.apiUrl}/trading/decisions/latest`
+    );
   }
 
   getROIHistory(limit: number = 10): Observable<ROIData[]> {
-    return this.http.get<ROIData[]>(`${this.apiUrl}/trading/roi?limit=${limit}`);
+    return this.http.get<ROIData[]>(
+      `${this.apiUrl}/trading/roi?limit=${limit}`
+    );
   }
 
   getLatestROI(): Observable<ROIData> {
@@ -111,7 +119,9 @@ export class BotApiService {
 
   // Logs endpoints
   getLatestLogs(lines: number = 3): Observable<LogsResponse> {
-    return this.http.get<LogsResponse>(`${this.apiUrl}/logs/latest?lines=${lines}`);
+    return this.http.get<LogsResponse>(
+      `${this.apiUrl}/logs/latest?lines=${lines}`
+    );
   }
 
   getAllLogs(): Observable<LogsResponse> {
