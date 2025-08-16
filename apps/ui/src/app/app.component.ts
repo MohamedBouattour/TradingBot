@@ -1,13 +1,12 @@
 import { Component } from "@angular/core";
 import { RouterOutlet } from "@angular/router";
-import { LogComponent } from "./core/components/log.component";
 
 @Component({
   selector: "app-root",
-  imports: [RouterOutlet, LogComponent],
+  imports: [RouterOutlet],
   templateUrl: "./app.component.html",
   styleUrl: "./app.component.scss",
 })
 export class AppComponent {
-  title = "bot-ui";
+  title = "Trading Bot Dashboard";
 }

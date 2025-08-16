@@ -15,6 +15,7 @@ import { BinanceApiService } from "./services/binance-api.service";
 import { LogService } from "./services/log.service";
 import { MarketService } from "./services/market.service";
 import { TradeService } from "./services/trade.service";
+import { ApiClientService } from "./services/api-client.service";
 import { RSIStrategy } from "./strategies/rsi/rsi-strategy";
 import { StrategyManager } from "./strategies/strategy-manager";
 import { MemoryMonitor } from "./utils/memory-monitor";
@@ -52,11 +53,15 @@ async function runTradingBot(candlestick: Candle[]) {
       pair: PAIR,
     };
 
-    label.length &&
+    if (label.length) {
       LogService.logTradingDecision(
         `Strategy decision: ${label}`,
         decisionData
       );
+      
+      // Send trading decision to API
+      await ApiClientService.sendTradingDecision(decisionData);
+    }
 
     await rebalancePorfolio();
     await calculateRoi();
@@ -241,6 +246,21 @@ export async function calculateRoi() {
   const total = assetValue[0] + assetValue[1] + portfolioValueInUSD;
   const roi = ((total - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
   const pnl = total - INITIAL_BALANCE;
+
+  // Create ROI data for API
+  const roiData = {
+    assetValue: assetValue[0],
+    baseCurrencyValue: assetValue[1],
+    portfolioValue: portfolioValueInUSD,
+    totalValue: total,
+    roi: roi,
+    pnl: pnl,
+    initialBalance: INITIAL_BALANCE,
+    timestamp: new Date().toISOString(),
+  };
+
+  // Send ROI data to API
+  await ApiClientService.sendROIData(roiData);
 
   // Create structured log message with portfolio breakdown
   const portfolioInfo = `${ASSET}: $${assetValue[0].toFixed(

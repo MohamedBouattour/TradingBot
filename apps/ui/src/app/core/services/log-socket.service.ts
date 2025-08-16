@@ -9,7 +9,7 @@ export class LogSocketService {
   private socket: Socket;
 
   constructor() {
-    this.socket = io("http://localhost:3000");
+    this.socket = io("http://localhost:3002");
     this.socket.on("connect", () => console.log("connected!"));
   }
 
