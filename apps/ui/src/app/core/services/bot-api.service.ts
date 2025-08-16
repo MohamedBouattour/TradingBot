@@ -75,7 +75,7 @@ export interface LogsResponse {
   providedIn: 'root'
 })
 export class BotApiService {
-  private readonly apiUrl = 'http://localhost:3002' + '/api';
+  private readonly apiUrl = window.location.origin + '/api';
 
   constructor(private http: HttpClient) {}
 
