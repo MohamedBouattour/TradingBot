@@ -115,7 +115,7 @@ async function main() {
   try {
     // 🔥 ADD THIS: Sync portfolio with database on startup
     await syncPortfolioWithDatabase();
-    
+
     // Initial setup
     let candlesticks = await MarketService.fetchCandlestickData(
       PAIR,
@@ -279,9 +279,9 @@ export async function calculateRoi() {
   })`;
 
   const structuredMessage = `
-#####################################################################################
+#####################################################################################################
 # ${portfolioInfo.padEnd(79)} #
-#####################################################################################`;
+#####################################################################################################`;
 
   LogService.logAssetValue(structuredMessage);
   return roi;
@@ -338,7 +338,7 @@ async function syncPortfolioWithDatabase(): Promise<void> {
       "Synchronizing portfolio with database...",
       { portfolioItems: PORTFOLIO.length }
     );
-
+    await waitForApiAvailability();
     const syncResults = await Promise.allSettled(
       PORTFOLIO.map(async (item) => {
         try {
@@ -395,6 +395,61 @@ async function syncPortfolioWithDatabase(): Promise<void> {
       }
     );
   }
+}
+
+async function waitForApiAvailability(): Promise<void> {
+  const maxAttempts = 30; // Maximum 60 seconds (30 attempts × 2 seconds)
+  let attempts = 0;
+
+  LogService.logStructured("INFO", "SYSTEM", "Checking API availability...", {
+    maxAttempts,
+    retryInterval: "2 seconds",
+  });
+
+  while (attempts < maxAttempts) {
+    try {
+      attempts++;
+
+      // Try to check API health
+      const isHealthy = await ApiClientService.checkHealth();
+
+      if (isHealthy) {
+        LogService.logStructured(
+          "INFO",
+          "SYSTEM",
+          "API is available and ready",
+          { attempts, totalWaitTime: `${(attempts - 1) * 2} seconds` }
+        );
+        return; // API is ready, exit function
+      }
+
+      // API not ready, log and wait
+      LogService.logStructured(
+        "WARN",
+        "SYSTEM",
+        `API not ready (attempt ${attempts}/${maxAttempts}), retrying in 2 seconds...`
+      );
+
+      if (attempts < maxAttempts) {
+        await delay(2000); // Wait 2 seconds before next attempt
+      }
+    } catch (error: any) {
+      LogService.logStructured(
+        "WARN",
+        "SYSTEM",
+        `API health check failed (attempt ${attempts}/${maxAttempts}): ${error.message}`
+      );
+
+      if (attempts < maxAttempts) {
+        await delay(2000); // Wait 2 seconds before next attempt
+      }
+    }
+  }
+
+  // If we reach here, API is still not available after max attempts
+  throw new Error(
+    `API not available after ${maxAttempts} attempts (${maxAttempts * 2} seconds). Cannot start trading bot.`
+  );
 }
 
 main();
