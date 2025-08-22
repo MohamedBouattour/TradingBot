@@ -92,16 +92,6 @@ async function runTradingBot(candlestick: Candle[]) {
 }
 
 async function main() {
-  const startupData = {
-    asset: ASSET,
-    pair: PAIR,
-    timeFrame: TIME_FRAME,
-    initialBalance: INITIAL_BALANCE,
-    portfolioItems: PORTFOLIO.length,
-    mode: process?.env?.["MODE"] || "PRODUCTION",
-    timestamp: new Date().toISOString(),
-  };
-
   LogService.logStructured(
     "INFO",
     "SYSTEM",
@@ -114,7 +104,8 @@ async function main() {
 
   try {
     // 🔥 ADD THIS: Sync portfolio with database on startup
-    await syncPortfolioWithDatabase();
+    LogService.log("startupData", startupData.withApi);
+    startupData.withApi === true && (await syncPortfolioWithDatabase());
 
     // Initial setup
     let candlesticks = await MarketService.fetchCandlestickData(
@@ -181,13 +172,23 @@ async function main() {
         // Reset retry count on successful iteration
         retryCount = 0;
 
-        // Periodic memory cleanup - reduced frequency and added memory threshold
-        if (global.gc && Math.random() < 0.005) {
-          // 0.5% chance
+        if (global.gc && Math.random() < 0.01) {
+          // Reduced to 1% chance
           const memUsage = process.memoryUsage();
-          if (memUsage.heapUsed > 200 * 1024 * 1024) {
-            // Only GC if heap > 200MB
+          const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
+
+          if (heapUsedMB > 100) {
+            // Reduced threshold from 200MB to 100MB
+            console.log(
+              `Triggering GC - Heap usage: ${heapUsedMB.toFixed(2)}MB`
+            );
             global.gc();
+
+            // Clear market service cache if memory is still high
+            const newMemUsage = process.memoryUsage();
+            if (newMemUsage.heapUsed / 1024 / 1024 > 120) {
+              MarketService.clearCache();
+            }
           }
         }
       } catch (error: any) {
@@ -265,7 +266,7 @@ export async function calculateRoi() {
   };
 
   // Send ROI data to API
-  await ApiClientService.sendROIData(roiData);
+  startupData.withApi && (await ApiClientService.sendROIData(roiData));
 
   // Create structured log message with portfolio breakdown
   const portfolioInfo = `${ASSET}: $${assetValue[0].toFixed(
@@ -338,7 +339,7 @@ async function syncPortfolioWithDatabase(): Promise<void> {
       "Synchronizing portfolio with database...",
       { portfolioItems: PORTFOLIO.length }
     );
-    await waitForApiAvailability();
+    startupData.withApi && (await waitForApiAvailability());
     const syncResults = await Promise.allSettled(
       PORTFOLIO.map(async (item) => {
         try {
@@ -452,4 +453,14 @@ async function waitForApiAvailability(): Promise<void> {
   );
 }
 
+export const startupData = {
+  asset: ASSET,
+  pair: PAIR,
+  timeFrame: TIME_FRAME,
+  initialBalance: INITIAL_BALANCE,
+  portfolioItems: PORTFOLIO.length,
+  mode: process?.env?.["MODE"] || "PRODUCTION",
+  withApi: JSON.parse(process?.env?.["WITH_API"] || "false") as boolean,
+  timestamp: new Date().toISOString(),
+};
 main();

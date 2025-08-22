@@ -49,7 +49,7 @@ export class LogService {
 
   private static getLogStream(): fs.WriteStream {
     // 🔥 ADD THIS LINE - Initialize on first use
-    this.initializeLogService();
+    //this.initializeLogService();
 
     if (!this.logStream || this.logStream.destroyed) {
       // Check if log file exists and get its size

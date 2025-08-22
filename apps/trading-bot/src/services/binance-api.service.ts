@@ -10,11 +10,13 @@ import {
   ASSET,
   BALANCE_POSTIOTION_RATIO,
   BASE_CURRENCY,
+  MULTIPLIER,
   PAIR,
 } from "../constants";
 import { LogService } from "./log.service";
 import { ApiClientService } from "./api-client.service";
 import { PortfolioItem } from "../models/portfolio-item.model";
+import { startupData } from "../app";
 config();
 
 export class BinanceApiService {
@@ -36,11 +38,6 @@ export class BinanceApiService {
     keepAlive: true,
   });
 
-  private static requestCount = 0;
-  private static lastRequestTime = 0;
-  private static readonly MAX_REQUESTS_PER_MINUTE = 1200;
-  private static readonly REQUEST_WINDOW = 60000; // 1 minute
-
   // Cache for market prices to reduce API calls
   private static priceCache = new Map<
     string,
@@ -48,35 +45,11 @@ export class BinanceApiService {
   >();
   private static readonly PRICE_CACHE_TTL = 5000; // 5 seconds cache for prices
 
-  private static async rateLimitCheck(): Promise<void> {
-    const now = Date.now();
-
-    // Reset counter if window has passed
-    if (now - this.lastRequestTime > this.REQUEST_WINDOW) {
-      this.requestCount = 0;
-      this.lastRequestTime = now;
-    }
-
-    // Check if we're approaching rate limit
-    if (this.requestCount >= this.MAX_REQUESTS_PER_MINUTE * 0.9) {
-      // 90% of limit
-      const waitTime = this.REQUEST_WINDOW - (now - this.lastRequestTime);
-      if (waitTime > 0) {
-        console.warn(`Approaching rate limit, waiting ${waitTime}ms`);
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
-        this.requestCount = 0;
-        this.lastRequestTime = Date.now();
-      }
-    }
-
-    this.requestCount++;
-  }
   /**
    * Get account balance for all assets
    * @returns Promise containing account balances
    */
   public static async getBalance(): Promise<any> {
-    await this.rateLimitCheck();
     try {
       return await BinanceApiService.binance.balance();
     } catch (error: any) {
@@ -90,10 +63,8 @@ export class BinanceApiService {
    */
   public static async getAssetValue(): Promise<Array<number>> {
     try {
-      await this.rateLimitCheck();
       const account = await BinanceApiService.binance.account();
 
-      await this.rateLimitCheck();
       const assetPrice = await BinanceApiService.getMarketPrice(PAIR);
 
       const assetBalance = account.balances.find(
@@ -174,7 +145,6 @@ export class BinanceApiService {
       return cached.price;
     }
 
-    await this.rateLimitCheck();
     try {
       const prices = await BinanceApiService.binance.prices();
       const price = prices[symbol];
@@ -215,7 +185,6 @@ export class BinanceApiService {
   }
 
   public static async getOpenOrders(symbol?: string): Promise<Order[]> {
-    await this.rateLimitCheck();
     try {
       return await BinanceApiService.binance.openOrders(symbol);
     } catch (error: any) {
@@ -224,7 +193,6 @@ export class BinanceApiService {
   }
 
   public static async cancelAllOrders(symbol: string): Promise<CancelOrder> {
-    await this.rateLimitCheck();
     try {
       return await BinanceApiService.binance.cancelAllOrders(symbol);
     } catch (error: any) {
@@ -282,7 +250,6 @@ export class BinanceApiService {
    * @returns Promise containing the server time in milliseconds
    */
   public static async getServerTime(): Promise<{ serverTime: number }> {
-    await this.rateLimitCheck();
     try {
       return await BinanceApiService.binance.time();
     } catch (error: any) {
@@ -319,7 +286,7 @@ export class BinanceApiService {
     const timestamp = new Date().toISOString();
     let rebalanceResult: any = {
       asset: protfolioItem.asset,
-      status: 'SUCCESS' as const,
+      status: "SUCCESS" as const,
       currentValue: 0,
       targetValue: protfolioItem.value,
       deviation: 0,
@@ -327,7 +294,6 @@ export class BinanceApiService {
     };
 
     try {
-      await this.rateLimitCheck();
       const account = await BinanceApiService.binance.account();
 
       const symbol = protfolioItem.asset + baseCurrency;
@@ -343,26 +309,32 @@ export class BinanceApiService {
         );
         // Set to 0 if asset not found
         protfolioItem.valueInBaseCurrency = 0;
-        rebalanceResult.status = 'ERROR';
-        rebalanceResult.error = 'Asset not found in account balances';
-        await ApiClientService.sendRebalanceResult(rebalanceResult);
+        rebalanceResult.status = "ERROR";
+        rebalanceResult.error = "Asset not found in account balances";
+        startupData.withApi &&
+          (await ApiClientService.sendRebalanceResult(rebalanceResult));
         return;
       }
 
-      const freeBalance = parseFloat(assetBalance.free || '0');
-      const lockedBalance = parseFloat(assetBalance.locked || '0');
+      const freeBalance = parseFloat(assetBalance.free || "0");
+      const lockedBalance = parseFloat(assetBalance.locked || "0");
       const totalBalance = freeBalance + lockedBalance;
       const assetValue = totalBalance * assetPrice;
 
       // Store the current USD value in the portfolio item
       protfolioItem.valueInBaseCurrency = assetValue;
-      
+
       // Update portfolio value in API
-      await ApiClientService.updatePortfolioValue(protfolioItem.asset, assetValue);
+      startupData.withApi &&
+        (await ApiClientService.updatePortfolioValue(
+          protfolioItem.asset,
+          assetValue
+        ));
 
       // Update rebalance result with current values
       rebalanceResult.currentValue = assetValue;
-      rebalanceResult.deviation = ((assetValue - protfolioItem.value) / protfolioItem.value) * 100;
+      rebalanceResult.deviation =
+        ((assetValue - protfolioItem.value) / protfolioItem.value) * 100;
 
       // Log current asset status in readable format
       LogService.logRebalance(
@@ -379,9 +351,10 @@ export class BinanceApiService {
         LogService.logRebalance(
           `${protfolioItem.asset}: SKIP - Balance too small (${freeBalance})`
         );
-        rebalanceResult.status = 'SKIPPED';
-        rebalanceResult.action = 'BALANCED';
-        await ApiClientService.sendRebalanceResult(rebalanceResult);
+        rebalanceResult.status = "SKIPPED";
+        rebalanceResult.action = "BALANCED";
+        startupData.withApi &&
+          (await ApiClientService.sendRebalanceResult(rebalanceResult));
         return;
       }
 
@@ -400,18 +373,18 @@ export class BinanceApiService {
             ).toFixed(2)}) - OVERWEIGHT`
           );
 
-          await this.rateLimitCheck();
           const order = await BinanceApiService.sell(symbol, amount);
 
           LogService.logRebalance(
             `${protfolioItem.asset}: SELL completed - ${order.status} (${order.executedQty})`
           );
 
-          rebalanceResult.action = 'SELL';
+          rebalanceResult.action = "SELL";
           rebalanceResult.quantity = amount;
           rebalanceResult.price = assetPrice;
           rebalanceResult.value = amount * assetPrice;
-          await ApiClientService.sendRebalanceResult(rebalanceResult);
+          startupData.withApi &&
+            (await ApiClientService.sendRebalanceResult(rebalanceResult));
 
           return order;
         } else {
@@ -420,9 +393,10 @@ export class BinanceApiService {
               amount * assetPrice
             ).toFixed(2)})`
           );
-          rebalanceResult.status = 'SKIPPED';
-          rebalanceResult.action = 'SELL';
-          await ApiClientService.sendRebalanceResult(rebalanceResult);
+          rebalanceResult.status = "SKIPPED";
+          rebalanceResult.action = "SELL";
+          startupData.withApi &&
+            (await ApiClientService.sendRebalanceResult(rebalanceResult));
         }
       }
       // Buy if underweight (current value < threshold)
@@ -433,7 +407,8 @@ export class BinanceApiService {
         const buyinQuantity = parseFloat(
           (
             (protfolioItem.value / assetPrice) *
-            (protfolioItem.threshold + 0.02)
+            (protfolioItem.threshold + 0.02) *
+            (protfolioItem.increaseOnBuy ? MULTIPLIER : 1)
           ).toFixed(protfolioItem.quantityPrecision)
         );
 
@@ -444,41 +419,41 @@ export class BinanceApiService {
             ).toFixed(2)}) - UNDERWEIGHT`
           );
 
-          await this.rateLimitCheck();
           if (buyinQuantity * assetPrice > 5.02) {
-            const order = await BinanceApiService.buy(
-              symbol,
-              buyinQuantity
-            );
+            const order = await BinanceApiService.buy(symbol, buyinQuantity);
             protfolioItem.value =
               protfolioItem.value * (1 + protfolioItem.threshold);
             LogService.logRebalance(
               `${protfolioItem.asset}: BUY completed - ${order.status} (${order.executedQty})`
             );
 
-            rebalanceResult.action = 'BUY';
+            rebalanceResult.action = "BUY";
             rebalanceResult.quantity = buyinQuantity;
             rebalanceResult.price = assetPrice;
             rebalanceResult.value = buyinQuantity * assetPrice;
-            await ApiClientService.sendRebalanceResult(rebalanceResult);
-
+            startupData.withApi &&
+              (await ApiClientService.sendRebalanceResult(rebalanceResult));
+            protfolioItem.value = protfolioItem.value * MULTIPLIER;
             return order;
           } else {
-            rebalanceResult.status = 'SKIPPED';
-            rebalanceResult.action = 'BUY';
-            await ApiClientService.sendRebalanceResult(rebalanceResult);
+            rebalanceResult.status = "SKIPPED";
+            rebalanceResult.action = "BUY";
+            startupData.withApi &&
+              (await ApiClientService.sendRebalanceResult(rebalanceResult));
           }
         } else {
           LogService.logRebalance(
             `${protfolioItem.asset}: BUY skipped - Zero quantity calculated`
           );
-          rebalanceResult.status = 'SKIPPED';
-          rebalanceResult.action = 'BUY';
-          await ApiClientService.sendRebalanceResult(rebalanceResult);
+          rebalanceResult.status = "SKIPPED";
+          rebalanceResult.action = "BUY";
+          startupData.withApi &&
+            (await ApiClientService.sendRebalanceResult(rebalanceResult));
         }
       } else {
-        rebalanceResult.action = 'BALANCED';
-        await ApiClientService.sendRebalanceResult(rebalanceResult);
+        rebalanceResult.action = "BALANCED";
+        startupData.withApi &&
+          (await ApiClientService.sendRebalanceResult(rebalanceResult));
         /* LogService.logRebalance(
           `${protfolioItem.asset}: BALANCED - No action needed`
         ); */
@@ -493,11 +468,12 @@ export class BinanceApiService {
           timestamp: new Date().toISOString(),
         }
       );
-      
-      rebalanceResult.status = 'ERROR';
+
+      rebalanceResult.status = "ERROR";
       rebalanceResult.error = error.message;
-      await ApiClientService.sendRebalanceResult(rebalanceResult);
-      
+      startupData.withApi &&
+        (await ApiClientService.sendRebalanceResult(rebalanceResult));
+
       throw error;
     }
   }

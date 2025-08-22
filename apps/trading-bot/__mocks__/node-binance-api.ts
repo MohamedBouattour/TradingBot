@@ -80,3 +80,5 @@ const mockBinanceInstance = {
 const Binance = jest.fn(() => mockBinanceInstance);
 
 export default Binance;
+
+

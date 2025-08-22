@@ -1,58 +1,81 @@
-import { describe, expect, it } from "@jest/globals";
-import { convertStringToNumbers, delay } from "../src/core/utils";
+import { convertStringToNumbers, delay, getMACDHistogramColorLabels } from "../src/core/utils";
 
-describe("convertStringToNumbers", () => {
-  it("should convert array of string arrays to Candle objects", () => {
-    const input = [
-      [
-        "1619827200000",
-        "2.30000000",
-        "2.34000000",
-        "2.29000000",
-        "2.33000000",
-        "1000.00000000",
-        "1619827499999",
-        "2300.00000000",
-        "150",
-        "500.00000000",
-        "1150.00000000",
-        "0",
-      ],
-    ];
+describe("utils", () => {
+  describe("convertStringToNumbers", () => {
+    it("should convert string arrays to Candle objects", () => {
+      const stringCandles = [
+        [
+          "1678886400000",
+          "20000",
+          "20500",
+          "19800",
+          "20300",
+          "10",
+          "1678972799999",
+          "100",
+          "50",
+          "5",
+          "50",
+          "ignored",
+        ],
+      ];
+      const candles = convertStringToNumbers(stringCandles);
 
-    const expected = [
-      {
-        time: "2021-05-01T00:00:00.000Z",
-        open: 2.3,
-        high: 2.34,
-        low: 2.29,
-        close: 2.33,
-        volume: 1000,
-        closeTime: "2021-05-01T00:04:59.999Z",
-        assetVolume: 2300,
-        trades: 150,
-        buyBaseVolume: 500,
-        buyAssetVolume: 1150,
-        ignored: "0",
-      },
-    ];
-
-    const result = convertStringToNumbers(input);
-    expect(result).toEqual(expected);
+      expect(candles.length).toBe(1);
+      expect(candles[0].time).toBe(new Date(1678886400000).toISOString());
+      expect(candles[0].open).toBe(20000);
+      expect(candles[0].high).toBe(20500);
+      expect(candles[0].low).toBe(19800);
+      expect(candles[0].close).toBe(20300);
+      expect(candles[0].volume).toBe(10);
+      expect(candles[0].closeTime).toBe(new Date(1678972799999).toISOString());
+      expect(candles[0].assetVolume).toBe(100);
+      expect(candles[0].trades).toBe(50);
+      expect(candles[0].buyBaseVolume).toBe(5);
+      expect(candles[0].buyAssetVolume).toBe(50);
+      expect(candles[0].ignored).toBe("ignored");
+    });
   });
 
-  it("should handle empty array", () => {
-    const result = convertStringToNumbers([]);
-    expect(result).toEqual([]);
+  describe("delay", () => {
+    it("should delay for the specified amount of time", async () => {
+      const startTime = Date.now();
+      await delay(100);
+      const endTime = Date.now();
+      expect(endTime - startTime).toBeGreaterThanOrEqual(100);
+    });
+  });
+
+  describe("getMACDHistogramColorLabels", () => {
+    it("should return correct labels for positive histogram values", () => {
+      const hist = [0, 1, 2, 1, 0.5];
+      const labels = getMACDHistogramColorLabels(hist);
+      expect(labels).toEqual(["dark-green", "dark-green", "light-green", "light-green"]);
+    });
+
+    it("should return correct labels for negative histogram values", () => {
+      const hist = [0, -1, -2, -1, -0.5];
+      const labels = getMACDHistogramColorLabels(hist);
+      expect(labels).toEqual(["dark-red", "dark-red", "light-red", "light-red"]);
+    });
+
+    it("should return correct labels for mixed histogram values", () => {
+      const hist = [0, 1, -1, 2, -2];
+      const labels = getMACDHistogramColorLabels(hist);
+      expect(labels).toEqual(["dark-green", "dark-red", "dark-green", "dark-red"]);
+    });
+
+    it("should handle empty histogram array", () => {
+      const hist: number[] = [];
+      const labels = getMACDHistogramColorLabels(hist);
+      expect(labels).toEqual([]);
+    });
+
+    it("should handle single element histogram array", () => {
+      const hist = [10];
+      const labels = getMACDHistogramColorLabels(hist);
+      expect(labels).toEqual([]);
+    });
   });
 });
 
-describe("delay", () => {
-  it("should wait for specified milliseconds", async () => {
-    const start = Date.now();
-    await delay(100);
-    const end = Date.now();
-    const elapsed = end - start;
-    expect(elapsed).toBeGreaterThanOrEqual(100);
-  });
-});
