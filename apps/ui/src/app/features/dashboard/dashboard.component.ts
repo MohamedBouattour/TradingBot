@@ -18,23 +18,29 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
   template: `
     <div class="dashboard">
       <header class="dashboard-header">
-        <h1>Trading Bot Dashboard</h1>
-        <div class="status-indicators">
-          <div
-            class="status-item"
-            [class.online]="apiStatus"
-            [class.offline]="!apiStatus"
-          >
-            <span class="status-dot"></span>
-            API: {{ apiStatus ? "Online" : "Offline" }}
-          </div>
-          <div
-            class="status-item"
-            [class.online]="logsStatus"
-            [class.offline]="!logsStatus"
-          >
-            <span class="status-dot"></span>
-            Logs: {{ logsStatus ? "Active" : "Inactive" }}
+        <div class="header-content">
+          <h1>Trading Bot Dashboard</h1>
+          <div class="status-indicators">
+            <div
+              class="status-item"
+              [class.online]="apiStatus"
+              [class.offline]="!apiStatus"
+            >
+              <span class="status-dot"></span>
+              <span class="status-text"
+                >API: {{ apiStatus ? "Online" : "Offline" }}</span
+              >
+            </div>
+            <div
+              class="status-item"
+              [class.online]="logsStatus"
+              [class.offline]="!logsStatus"
+            >
+              <span class="status-dot"></span>
+              <span class="status-text"
+                >Logs: {{ logsStatus ? "Active" : "Inactive" }}</span
+              >
+            </div>
           </div>
         </div>
       </header>
@@ -44,45 +50,51 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
         <div class="card roi-card">
           <h2>Performance Overview</h2>
           <div class="roi-stats" *ngIf="latestROI">
-            <div class="stat-item">
-              <span class="label">Total Value:</span>
-              <span class="value">\${{ latestROI.totalValue.toFixed(2) }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="label">ROI:</span>
-              <span
-                class="value"
-                [class.positive]="latestROI.roi >= 0"
-                [class.negative]="latestROI.roi < 0"
-              >
-                {{ latestROI.roi.toFixed(2) }}%
-              </span>
-            </div>
-            <div class="stat-item">
-              <span class="label">P&L:</span>
-              <span
-                class="value"
-                [class.positive]="latestROI.pnl >= 0"
-                [class.negative]="latestROI.pnl < 0"
-              >
-                \${{ latestROI.pnl.toFixed(2) }}
-              </span>
-            </div>
-            <div class="stat-item">
-              <span class="label">Asset Value:</span>
-              <span class="value">\${{ latestROI.assetValue.toFixed(2) }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="label">Base Currency:</span>
-              <span class="value"
-                >\${{ latestROI.baseCurrencyValue.toFixed(2) }}</span
-              >
-            </div>
-            <div class="stat-item">
-              <span class="label">Portfolio:</span>
-              <span class="value"
-                >\${{ latestROI.portfolioValue.toFixed(2) }}</span
-              >
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="label">Total Value</span>
+                <span class="value primary"
+                  >\${{ latestROI.totalValue.toFixed(2) }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="label">ROI</span>
+                <span
+                  class="value"
+                  [class.positive]="latestROI.roi >= 0"
+                  [class.negative]="latestROI.roi < 0"
+                >
+                  {{ latestROI.roi.toFixed(2) }}%
+                </span>
+              </div>
+              <div class="stat-item">
+                <span class="label">P&L</span>
+                <span
+                  class="value"
+                  [class.positive]="latestROI.pnl >= 0"
+                  [class.negative]="latestROI.pnl < 0"
+                >
+                  \${{ latestROI.pnl.toFixed(2) }}
+                </span>
+              </div>
+              <div class="stat-item">
+                <span class="label">Asset Value</span>
+                <span class="value"
+                  >\${{ latestROI.assetValue.toFixed(2) }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="label">Base Currency</span>
+                <span class="value"
+                  >\${{ latestROI.baseCurrencyValue.toFixed(2) }}</span
+                >
+              </div>
+              <div class="stat-item">
+                <span class="label">Portfolio</span>
+                <span class="value"
+                  >\${{ latestROI.portfolioValue.toFixed(2) }}</span
+                >
+              </div>
             </div>
           </div>
           <div class="no-data" *ngIf="!latestROI">
@@ -95,21 +107,23 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
           <h2>Portfolio Status</h2>
           <div class="portfolio-stats" *ngIf="portfolioStats">
             <div class="portfolio-summary">
-              <div class="summary-item">
-                <span class="label">Target Value:</span>
-                <span class="value"
-                  >\${{ portfolioStats.totalTargetValue.toFixed(2) }}</span
-                >
-              </div>
-              <div class="summary-item">
-                <span class="label">Current Value:</span>
-                <span class="value"
-                  >\${{ portfolioStats.totalCurrentValue.toFixed(2) }}</span
-                >
-              </div>
-              <div class="summary-item">
-                <span class="label">Assets:</span>
-                <span class="value">{{ portfolioStats.itemCount }}</span>
+              <div class="summary-grid">
+                <div class="summary-item">
+                  <span class="label">Target Value</span>
+                  <span class="value"
+                    >\${{ portfolioStats.totalTargetValue.toFixed(2) }}</span
+                  >
+                </div>
+                <div class="summary-item">
+                  <span class="label">Current Value</span>
+                  <span class="value"
+                    >\${{ portfolioStats.totalCurrentValue.toFixed(2) }}</span
+                  >
+                </div>
+                <div class="summary-item">
+                  <span class="label">Assets</span>
+                  <span class="value">{{ portfolioStats.itemCount }}</span>
+                </div>
               </div>
             </div>
             <div class="assets-list">
@@ -143,7 +157,7 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
           </div>
         </div>
 
-        <!-- 🔥 NEW: Target Allocation Pie Chart -->
+        <!-- Target Allocation Pie Chart -->
         <div class="card chart-card">
           <app-pie-chart
             title="Target Portfolio Allocation"
@@ -152,7 +166,7 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
           </app-pie-chart>
         </div>
 
-        <!-- 🔥 NEW: Current Allocation Pie Chart -->
+        <!-- Current Allocation Pie Chart -->
         <div class="card chart-card">
           <app-pie-chart
             title="Current Portfolio Allocation"
@@ -165,69 +179,75 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
         <div class="card trading-card">
           <h2>Trading Statistics</h2>
           <div class="trading-stats" *ngIf="tradingStats">
-            <div class="decisions-stats">
-              <h3>Trading Decisions</h3>
-              <div class="stat-row">
-                <span class="label">Total:</span>
-                <span class="value">{{
-                  tradingStats.tradingDecisions.total
-                }}</span>
+            <div class="trading-sections">
+              <div class="decisions-stats">
+                <h3>Trading Decisions</h3>
+                <div class="stats-grid">
+                  <div class="stat-row">
+                    <span class="label">Total</span>
+                    <span class="value">{{
+                      tradingStats.tradingDecisions.total
+                    }}</span>
+                  </div>
+                  <div class="stat-row">
+                    <span class="label">Buy</span>
+                    <span class="value buy">{{
+                      tradingStats.tradingDecisions.buy
+                    }}</span>
+                  </div>
+                  <div class="stat-row">
+                    <span class="label">Sell</span>
+                    <span class="value sell">{{
+                      tradingStats.tradingDecisions.sell
+                    }}</span>
+                  </div>
+                  <div class="stat-row">
+                    <span class="label">Buy %</span>
+                    <span class="value"
+                      >{{
+                        tradingStats.tradingDecisions.buyPercentage.toFixed(1)
+                      }}%</span
+                    >
+                  </div>
+                </div>
               </div>
-              <div class="stat-row">
-                <span class="label">Buy:</span>
-                <span class="value buy">{{
-                  tradingStats.tradingDecisions.buy
-                }}</span>
-              </div>
-              <div class="stat-row">
-                <span class="label">Sell:</span>
-                <span class="value sell">{{
-                  tradingStats.tradingDecisions.sell
-                }}</span>
-              </div>
-              <div class="stat-row">
-                <span class="label">Buy %:</span>
-                <span class="value"
-                  >{{
-                    tradingStats.tradingDecisions.buyPercentage.toFixed(1)
-                  }}%</span
-                >
-              </div>
-            </div>
-            <div class="rebalance-stats">
-              <h3>Rebalance Operations</h3>
-              <div class="stat-row">
-                <span class="label">Total:</span>
-                <span class="value">{{
-                  tradingStats.rebalanceOperations.total
-                }}</span>
-              </div>
-              <div
-                class="stat-row"
-                *ngIf="tradingStats.rebalanceOperations.SUCCESS"
-              >
-                <span class="label">Success:</span>
-                <span class="value success">{{
-                  tradingStats.rebalanceOperations.SUCCESS
-                }}</span>
-              </div>
-              <div
-                class="stat-row"
-                *ngIf="tradingStats.rebalanceOperations.ERROR"
-              >
-                <span class="label">Errors:</span>
-                <span class="value error">{{
-                  tradingStats.rebalanceOperations.ERROR
-                }}</span>
-              </div>
-              <div
-                class="stat-row"
-                *ngIf="tradingStats.rebalanceOperations.SKIPPED"
-              >
-                <span class="label">Skipped:</span>
-                <span class="value skipped">{{
-                  tradingStats.rebalanceOperations.SKIPPED
-                }}</span>
+              <div class="rebalance-stats">
+                <h3>Rebalance Operations</h3>
+                <div class="stats-grid">
+                  <div class="stat-row">
+                    <span class="label">Total</span>
+                    <span class="value">{{
+                      tradingStats.rebalanceOperations.total
+                    }}</span>
+                  </div>
+                  <div
+                    class="stat-row"
+                    *ngIf="tradingStats.rebalanceOperations.SUCCESS"
+                  >
+                    <span class="label">Success</span>
+                    <span class="value success">{{
+                      tradingStats.rebalanceOperations.SUCCESS
+                    }}</span>
+                  </div>
+                  <div
+                    class="stat-row"
+                    *ngIf="tradingStats.rebalanceOperations.ERROR"
+                  >
+                    <span class="label">Errors</span>
+                    <span class="value error">{{
+                      tradingStats.rebalanceOperations.ERROR
+                    }}</span>
+                  </div>
+                  <div
+                    class="stat-row"
+                    *ngIf="tradingStats.rebalanceOperations.SKIPPED"
+                  >
+                    <span class="label">Skipped</span>
+                    <span class="value skipped">{{
+                      tradingStats.rebalanceOperations.SKIPPED
+                    }}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -253,27 +273,29 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
               }}</span>
             </div>
             <div class="decision-details">
-              <div class="detail-item">
-                <span class="label">Pair:</span>
-                <span class="value">{{ latestDecision.pair }}</span>
-              </div>
-              <div class="detail-item">
-                <span class="label">Current Price:</span>
-                <span class="value"
-                  >\${{ latestDecision.currentPrice.toFixed(4) }}</span
-                >
-              </div>
-              <div class="detail-item" *ngIf="latestDecision.targetPrice">
-                <span class="label">Target Price:</span>
-                <span class="value"
-                  >\${{ latestDecision.targetPrice.toFixed(4) }}</span
-                >
-              </div>
-              <div class="detail-item">
-                <span class="label">Execution Time:</span>
-                <span class="value"
-                  >{{ latestDecision.executionTimeMs }}ms</span
-                >
+              <div class="stats-grid">
+                <div class="detail-item">
+                  <span class="label">Pair</span>
+                  <span class="value">{{ latestDecision.pair }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="label">Current Price</span>
+                  <span class="value"
+                    >\${{ latestDecision.currentPrice.toFixed(4) }}</span
+                  >
+                </div>
+                <div class="detail-item" *ngIf="latestDecision.targetPrice">
+                  <span class="label">Target Price</span>
+                  <span class="value"
+                    >\${{ latestDecision.targetPrice.toFixed(4) }}</span
+                  >
+                </div>
+                <div class="detail-item">
+                  <span class="label">Execution Time</span>
+                  <span class="value"
+                    >{{ latestDecision.executionTimeMs }}ms</span
+                  >
+                </div>
               </div>
             </div>
           </div>
@@ -317,30 +339,38 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
   styles: [
     `
       .dashboard {
-        padding: 20px;
+        padding: 12px;
         background: #f5f5f5;
         min-height: 100vh;
       }
 
       .dashboard-header {
+        margin-bottom: 20px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header-content {
+        padding: 20px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 30px;
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        gap: 16px;
       }
 
       .dashboard-header h1 {
         margin: 0;
         color: #333;
+        font-size: 1.5rem;
+        font-weight: 600;
       }
 
       .status-indicators {
         display: flex;
-        gap: 20px;
+        gap: 12px;
+        flex-wrap: wrap;
       }
 
       .status-item {
@@ -348,9 +378,11 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
         align-items: center;
         gap: 8px;
         padding: 8px 12px;
-        border-radius: 4px;
-        font-size: 14px;
+        border-radius: 20px;
+        font-size: 13px;
         font-weight: 500;
+        min-height: 36px;
+        white-space: nowrap;
       }
 
       .status-item.online {
@@ -368,59 +400,90 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
         height: 8px;
         border-radius: 50%;
         background: currentColor;
+        flex-shrink: 0;
       }
 
       .dashboard-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
       }
 
       .card {
         background: white;
-        border-radius: 8px;
+        border-radius: 12px;
         padding: 20px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e9ecef;
       }
 
       .card h2 {
         margin: 0 0 20px 0;
         color: #333;
         border-bottom: 2px solid #eee;
-        padding-bottom: 10px;
+        padding-bottom: 12px;
+        font-size: 1.2rem;
+        font-weight: 600;
       }
 
-      /* 🔥 NEW: Chart card styling */
       .chart-card {
-        height: 400px;
+        min-height: 350px;
         display: flex;
         flex-direction: column;
       }
 
-      .roi-stats,
-      .portfolio-stats,
-      .trading-stats {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
+      /* Stats Grid Layout */
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 12px;
       }
 
       .stat-item,
-      .stat-row {
+      .stat-row,
+      .detail-item {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 8px 0;
+        flex-direction: column;
+        gap: 4px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        border-left: 3px solid #dee2e6;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+      }
+
+      .summary-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 12px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        text-align: center;
       }
 
       .label {
+        font-size: 12px;
         font-weight: 500;
         color: #666;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .value {
         font-weight: 600;
         color: #333;
+        font-size: 14px;
+      }
+
+      .value.primary {
+        font-size: 16px;
+        color: #007bff;
       }
 
       .value.positive {
@@ -431,18 +494,12 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
         color: #dc3545;
       }
 
-      .value.buy {
-        color: #28a745;
-      }
-
-      .value.sell {
-        color: #dc3545;
-      }
-
+      .value.buy,
       .value.success {
         color: #28a745;
       }
 
+      .value.sell,
       .value.error {
         color: #dc3545;
       }
@@ -451,41 +508,42 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
         color: #ffc107;
       }
 
+      /* Portfolio specific styles */
       .portfolio-summary {
-        border-bottom: 1px solid #eee;
-        padding-bottom: 15px;
-        margin-bottom: 15px;
+        margin-bottom: 24px;
       }
 
       .assets-list {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
       }
 
       .asset-item {
-        padding: 10px;
+        padding: 16px;
         background: #f8f9fa;
-        border-radius: 4px;
+        border-radius: 8px;
+        border-left: 4px solid #007bff;
       }
 
       .asset-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 5px;
+        margin-bottom: 8px;
       }
 
       .asset-name {
         font-weight: 600;
         color: #333;
+        font-size: 15px;
       }
 
       .asset-deviation {
         font-size: 12px;
         font-weight: 600;
-        padding: 2px 6px;
-        border-radius: 3px;
+        padding: 4px 8px;
+        border-radius: 12px;
       }
 
       .asset-deviation.positive {
@@ -508,35 +566,40 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
         color: #333;
       }
 
-      .decisions-stats,
-      .rebalance-stats {
-        flex: 1;
+      /* Trading stats layout */
+      .trading-sections {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
       }
 
       .decisions-stats h3,
       .rebalance-stats h3 {
-        margin: 0 0 10px 0;
-        font-size: 16px;
+        margin: 0 0 12px 0;
+        font-size: 14px;
         color: #555;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
       }
 
-      .decision-info {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-      }
-
+      /* Decision card */
       .decision-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+        gap: 8px;
       }
 
       .decision-type {
-        padding: 6px 12px;
-        border-radius: 4px;
+        padding: 8px 16px;
+        border-radius: 20px;
         font-weight: 600;
-        font-size: 14px;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .decision-type.buy {
@@ -552,87 +615,17 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
       .decision-time {
         font-size: 12px;
         color: #666;
+        font-weight: 500;
       }
 
-      .decision-details {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .detail-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 4px 0;
-      }
-
-      .logs-container {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .log-item {
-        padding: 8px 12px;
-        background: #f8f9fa;
-        border-radius: 4px;
-        font-family: monospace;
-        font-size: 12px;
-        line-height: 1.4;
-        border-left: 3px solid #dee2e6;
-      }
-
-      .log-item.buy {
-        border-left-color: #28a745;
-        background: #d4edda;
-      }
-
-      .log-item.sell {
-        border-left-color: #dc3545;
-        background: #f8d7da;
-      }
-
-      .log-item.error {
-        border-left-color: #dc3545;
-        background: #f8d7da;
-        color: #721c24;
-      }
-
-      .logs-footer {
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid #eee;
-        text-align: right;
-      }
-
-      .no-data {
-        text-align: center;
-        color: #666;
-        font-style: italic;
-        padding: 20px;
-      }
-
-      @media (max-width: 768px) {
-        .dashboard-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .dashboard-header {
-          flex-direction: column;
-          gap: 15px;
-          text-align: center;
-        }
-      }
-
+      /* Logs card */
       .logs-card {
-        grid-column: 1 / -1; /* full width */
-        background: black;
+        grid-column: 1 / -1;
+        background: #1a1a1a;
         color: #00ff00;
-        font-family: monospace;
-        padding: 15px;
-        border-radius: 8px;
-        height: 300px; /* or more */
+        font-family: "Monaco", "Menlo", monospace;
+        border-radius: 12px;
+        min-height: 280px;
         display: flex;
         flex-direction: column;
       }
@@ -640,37 +633,180 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
       .logs-card h2 {
         color: #0f0;
         border-bottom: 1px solid #333;
-        margin-bottom: 10px;
+        margin-bottom: 16px;
+        font-size: 1.1rem;
       }
 
       .logs-monitor {
         flex: 1;
         overflow-y: auto;
         white-space: pre-wrap;
+        font-size: 12px;
+        line-height: 1.5;
+        max-height: 200px;
       }
 
       .log-line {
-        padding: 2px 4px;
-        line-height: 1.4;
+        padding: 4px 8px;
+        margin-bottom: 2px;
+        border-radius: 4px;
+        word-break: break-word;
       }
 
       .log-line.buy {
-        color: #00ff00; /* green text for BUY */
+        color: #00ff00;
+        background: rgba(0, 255, 0, 0.1);
       }
 
       .log-line.sell {
-        color: #ff4444; /* red text for SELL */
+        color: #ff4444;
+        background: rgba(255, 68, 68, 0.1);
       }
 
       .log-line.error {
-        color: #ffae00; /* yellow/orange for errors */
+        color: #ffae00;
+        background: rgba(255, 174, 0, 0.1);
       }
 
       .logs-footer {
-        margin-top: 10px;
-        font-size: 12px;
+        margin-top: 12px;
+        font-size: 11px;
         color: #888;
         text-align: right;
+        padding-top: 12px;
+        border-top: 1px solid #333;
+      }
+
+      .no-data {
+        text-align: center;
+        color: #666;
+        font-style: italic;
+        padding: 40px 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        margin: 12px 0;
+      }
+
+      /* Mobile optimizations */
+      @media (max-width: 768px) {
+        .dashboard {
+          padding: 8px;
+        }
+
+        .dashboard-grid {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+
+        .card {
+          padding: 16px;
+        }
+
+        .header-content {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 16px;
+          padding: 16px;
+        }
+
+        .dashboard-header h1 {
+          text-align: center;
+          font-size: 1.3rem;
+        }
+
+        .status-indicators {
+          justify-content: center;
+        }
+
+        .stats-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .summary-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        .decision-header {
+          flex-direction: column;
+          align-items: stretch;
+          text-align: center;
+        }
+
+        .trading-sections {
+          gap: 20px;
+        }
+
+        .chart-card {
+          min-height: 300px;
+        }
+
+        .logs-monitor {
+          font-size: 11px;
+          max-height: 180px;
+        }
+
+        .logs-card {
+          min-height: 250px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .dashboard {
+          padding: 4px;
+        }
+
+        .card {
+          padding: 12px;
+        }
+
+        .header-content {
+          padding: 12px;
+        }
+
+        .dashboard-header h1 {
+          font-size: 1.2rem;
+        }
+
+        .status-item {
+          font-size: 12px;
+          padding: 6px 10px;
+        }
+
+        .status-text {
+          display: none;
+        }
+
+        .summary-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .asset-item {
+          padding: 12px;
+        }
+
+        .logs-monitor {
+          font-size: 10px;
+          max-height: 150px;
+        }
+
+        .chart-card {
+          min-height: 250px;
+        }
+      }
+
+      /* Touch improvements */
+      @media (hover: none) and (pointer: coarse) {
+        .status-item,
+        .decision-type,
+        .asset-item {
+          min-height: 44px;
+          display: flex;
+          align-items: center;
+        }
+
+        .card {
+          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        }
       }
     `,
   ],
@@ -700,7 +836,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private loadInitialData() {
-    // Load all data initially
     this.loadPortfolioStats();
     this.loadTradingStats();
     this.loadLatestROI();
@@ -710,9 +845,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private startPeriodicUpdates() {
-    // Update data every 30 seconds
-    const updateInterval = interval(30000);
-
+    const updateInterval = interval(60000);
     this.subscriptions.push(
       updateInterval.subscribe(() => {
         this.loadInitialData();
@@ -793,7 +926,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   getTargetPieData() {
     if (!this.portfolioStats) return [];
-
     return this.portfolioStats.assets
       .filter((asset) => asset.targetValue > 0)
       .map((asset) => ({
@@ -805,7 +937,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   getCurrentPieData() {
     if (!this.portfolioStats) return [];
-
     return this.portfolioStats.assets
       .filter((asset) => asset.currentValue > 0)
       .map((asset) => ({

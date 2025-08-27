@@ -17,6 +17,7 @@ import { LogService } from "./log.service";
 import { ApiClientService } from "./api-client.service";
 import { PortfolioItem } from "../models/portfolio-item.model";
 import { startupData } from "../app";
+import { delay } from "../core/utils";
 config();
 
 export class BinanceApiService {
@@ -295,9 +296,11 @@ export class BinanceApiService {
 
     try {
       const account = await BinanceApiService.binance.account();
+      await delay(1000);
 
       const symbol = protfolioItem.asset + baseCurrency;
       const assetPrice = await BinanceApiService.getMarketPrice(symbol);
+      await delay(1000);
 
       const assetBalance = account.balances.find(
         (item: any) => item.asset === protfolioItem.asset
@@ -374,6 +377,7 @@ export class BinanceApiService {
           );
 
           const order = await BinanceApiService.sell(symbol, amount);
+          await delay(1000);
 
           LogService.logRebalance(
             `${protfolioItem.asset}: SELL completed - ${order.status} (${order.executedQty})`
@@ -421,6 +425,7 @@ export class BinanceApiService {
 
           if (buyinQuantity * assetPrice > 5.02) {
             const order = await BinanceApiService.buy(symbol, buyinQuantity);
+            await delay(1000);
             protfolioItem.value =
               protfolioItem.value * (1 + protfolioItem.threshold);
             LogService.logRebalance(
