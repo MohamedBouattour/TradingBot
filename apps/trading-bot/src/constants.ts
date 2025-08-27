@@ -3,7 +3,7 @@ import { PortfolioItem } from "./models/portfolio-item.model";
 export let PORTFOLIO: PortfolioItem[] = [
   {
     asset: "BTC",
-    value: 200,
+    value: 170,
     threshold: 0.045,
     pricePresision: 2,
     quantityPrecision: 5,
@@ -57,7 +57,7 @@ export let PORTFOLIO: PortfolioItem[] = [
 ];
 export const MULTIPLIER = 1.035;
 // Core trading configuration
-export const TIME_FRAME = "15m";
+export const TIME_FRAME = "30m";
 export const ASSET = "BTC";
 export const BASE_CURRENCY = "USDT";
 export const PAIR = ASSET + BASE_CURRENCY;

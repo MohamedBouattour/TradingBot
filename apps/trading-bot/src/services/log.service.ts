@@ -164,6 +164,10 @@ export class LogService {
     this.logStructured("INFO", "REBALANCE", message, data);
   }
 
+  public static logMemoryStats(message: string, data?: any) {
+    this.logStructured("INFO", "MEMORY", message, data);
+  }
+
   public static logError(message: string, data?: any) {
     this.logStructured("ERROR", "SYSTEM", message, data);
   }
