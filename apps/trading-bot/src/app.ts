@@ -34,7 +34,8 @@ async function runTradingBot(candlestick: Candle[]) {
     const startTime = Date.now();
 
     const limitedCandlesticks = candlestick.slice(-100);
-    const currentPrice = limitedCandlesticks[limitedCandlesticks.length - 1].close;
+    const currentPrice =
+      limitedCandlesticks[limitedCandlesticks.length - 1].close;
 
     const { tp } = strategyManager.executeStrategy(limitedCandlesticks);
     const label = "";
@@ -51,7 +52,10 @@ async function runTradingBot(candlestick: Candle[]) {
     };
 
     if (label.length) {
-      LogService.logTradingDecision(`Strategy decision: ${label}`, decisionData);
+      LogService.logTradingDecision(
+        `Strategy decision: ${label}`,
+        decisionData
+      );
 
       if (startupData.withApi) {
         try {
@@ -71,7 +75,8 @@ async function runTradingBot(candlestick: Candle[]) {
         currentPrice: currentPrice,
         targetPrice: tp,
         priceGap: tp - currentPrice,
-        priceGapPercent: (((tp - currentPrice) / currentPrice) * 100).toFixed(2) + "%",
+        priceGapPercent:
+          (((tp - currentPrice) / currentPrice) * 100).toFixed(2) + "%",
         timestamp: new Date().toISOString(),
       };
 
@@ -94,7 +99,12 @@ async function main() {
     process.exit(1);
   }, 300000);
 
-  LogService.logStructured("INFO", "SYSTEM", "Trading Bot cron job started", startupData);
+  LogService.logStructured(
+    "INFO",
+    "SYSTEM",
+    "Trading Bot cron job started",
+    startupData
+  );
 
   try {
     memoryMonitor.startMonitoring();
@@ -103,10 +113,17 @@ async function main() {
       await syncPortfolioWithDatabase();
     }
 
-    const candlesticks = await MarketService.fetchCandlestickData(PAIR, interval.getInterval());
+    const candlesticks = await MarketService.fetchCandlestickData(
+      PAIR,
+      interval.getInterval()
+    );
     await runTradingBot(candlesticks.slice(0, -1));
 
-    LogService.logStructured("INFO", "SYSTEM", "Trading Bot cron job completed successfully");
+    LogService.logStructured(
+      "INFO",
+      "SYSTEM",
+      "Trading Bot cron job completed successfully"
+    );
   } catch (error: any) {
     LogService.logError(`Error in cron job execution: ${error.message}`, {
       error: error.message,
@@ -119,7 +136,7 @@ async function main() {
     if (timeoutId) {
       clearTimeout(timeoutId);
     }
-    if (memoryMonitor && typeof memoryMonitor.stopMonitoring === 'function') {
+    if (memoryMonitor && typeof memoryMonitor.stopMonitoring === "function") {
       memoryMonitor.stopMonitoring();
     }
     // Force exit
@@ -137,8 +154,9 @@ export async function calculateRoi() {
     console.log(`Total portfolio value: $${portfolioValueInUSD.toFixed(2)}`);
 
     const total = assetValue[1] + portfolioValueInUSD;
-    const roi = ((total - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
-    const pnl = total - INITIAL_BALANCE;
+    const roi =
+      ((total + assetValue[1] - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
+    const pnl = total + assetValue[1] - INITIAL_BALANCE;
 
     const roiData = {
       assetValue: assetValue[0],
@@ -176,24 +194,32 @@ export async function calculateRoi() {
 
 async function rebalancePorfolio() {
   try {
-    LogService.logRebalance(`Starting portfolio rebalancing ${PORTFOLIO.reduce((result, current) => (result += current.value), 0)} $`);
+    LogService.logRebalance(
+      `Starting portfolio rebalancing ${PORTFOLIO.reduce((result, current) => (result += current.value), 0)} $`
+    );
 
     const rebalanceResults = await Promise.allSettled(
       PORTFOLIO.map(async (item) => {
         try {
-          const result = await BinanceApiService.handleReabalance(item, BASE_CURRENCY);
+          const result = await BinanceApiService.handleReabalance(
+            item,
+            BASE_CURRENCY
+          );
           return { asset: item.asset, status: "SUCCESS", result };
         } catch (error: any) {
-          LogService.logError(`Error rebalancing ${item.asset}: ${error.message}`, {
-            asset: item.asset,
-            error: error.message,
-            timestamp: new Date().toISOString(),
-          });
+          LogService.logError(
+            `Error rebalancing ${item.asset}: ${error.message}`,
+            {
+              asset: item.asset,
+              error: error.message,
+              timestamp: new Date().toISOString(),
+            }
+          );
           return { asset: item.asset, status: "ERROR", error: error.message };
         }
       })
     );
-    
+
     LogService.logRebalance("Portfolio rebalancing completed");
   } catch (error: any) {
     LogService.logError(`Error in portfolio rebalancing: ${error.message}`, {
@@ -206,22 +232,32 @@ async function rebalancePorfolio() {
 
 async function syncPortfolioWithDatabase(): Promise<void> {
   try {
-    LogService.logStructured("INFO", "SYSTEM", "Synchronizing portfolio with database...", { portfolioItems: PORTFOLIO.length });
-    
+    LogService.logStructured(
+      "INFO",
+      "SYSTEM",
+      "Synchronizing portfolio with database...",
+      { portfolioItems: PORTFOLIO.length }
+    );
+
     if (startupData.withApi) {
       await waitForApiAvailability();
     }
-    
+
     const syncResults = await Promise.allSettled(
       PORTFOLIO.map(async (item) => {
         try {
           const success = await ApiClientService.syncPortfolioItem(item);
           if (success) {
-            LogService.logStructured("INFO", "SYSTEM", `Portfolio item synchronized: ${item.asset}`, {
-              asset: item.asset,
-              value: item.value,
-              threshold: item.threshold,
-            });
+            LogService.logStructured(
+              "INFO",
+              "SYSTEM",
+              `Portfolio item synchronized: ${item.asset}`,
+              {
+                asset: item.asset,
+                value: item.value,
+                threshold: item.threshold,
+              }
+            );
             return { asset: item.asset, status: "SUCCESS" };
           } else {
             throw new Error("API call failed");
@@ -237,20 +273,30 @@ async function syncPortfolioWithDatabase(): Promise<void> {
       })
     );
 
-    const successful = syncResults.filter((r) => r.status === "fulfilled" && r.value.status === "SUCCESS").length;
+    const successful = syncResults.filter(
+      (r) => r.status === "fulfilled" && r.value.status === "SUCCESS"
+    ).length;
     const failed = syncResults.length - successful;
 
-    LogService.logStructured("INFO", "SYSTEM", "Portfolio synchronization completed", {
-      total: PORTFOLIO.length,
-      successful,
-      failed,
-    });
+    LogService.logStructured(
+      "INFO",
+      "SYSTEM",
+      "Portfolio synchronization completed",
+      {
+        total: PORTFOLIO.length,
+        successful,
+        failed,
+      }
+    );
   } catch (error: any) {
-    LogService.logError(`Error in portfolio synchronization: ${error.message}`, {
-      error: error.message,
-      stack: error.stack,
-      timestamp: new Date().toISOString(),
-    });
+    LogService.logError(
+      `Error in portfolio synchronization: ${error.message}`,
+      {
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString(),
+      }
+    );
   }
 }
 
@@ -264,7 +310,11 @@ async function waitForApiAvailability(): Promise<void> {
       const isHealthy = await ApiClientService.checkHealth();
 
       if (isHealthy) {
-        LogService.logStructured("INFO", "SYSTEM", "API is available and ready");
+        LogService.logStructured(
+          "INFO",
+          "SYSTEM",
+          "API is available and ready"
+        );
         return;
       }
 

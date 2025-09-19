@@ -26,7 +26,9 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
             [class.offline]="!apiStatus"
           >
             <span class="status-dot"></span>
-            API: {{ apiStatus ? "Online" : "Offline" }}
+            <span class="status-text"
+              >API: {{ apiStatus ? "Online" : "Offline" }}</span
+            >
           </div>
           <div
             class="status-item"
@@ -34,7 +36,9 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
             [class.offline]="!logsStatus"
           >
             <span class="status-dot"></span>
-            Logs: {{ logsStatus ? "Active" : "Inactive" }}
+            <span class="status-text"
+              >Logs: {{ logsStatus ? "Active" : "Inactive" }}</span
+            >
           </div>
         </div>
       </header>
@@ -118,7 +122,12 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
                 *ngFor="let asset of portfolioStats.assets"
               >
                 <div class="asset-header">
-                  <span class="asset-name">{{ asset.asset }}</span>
+                  <div class="asset-info">
+                    <span class="asset-name">{{ asset.asset }}</span>
+                    <span class="asset-threshold"
+                      >{{ asset.threshold * 100 | number: "2.1-1" }}%</span
+                    >
+                  </div>
                   <span
                     class="asset-deviation"
                     [class.positive]="asset.deviation >= 0"
@@ -143,7 +152,7 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
           </div>
         </div>
 
-        <!-- 🔥 NEW: Target Allocation Pie Chart -->
+        <!-- Target Allocation Pie Chart -->
         <div class="card chart-card">
           <app-pie-chart
             title="Target Portfolio Allocation"
@@ -152,7 +161,7 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
           </app-pie-chart>
         </div>
 
-        <!-- 🔥 NEW: Current Allocation Pie Chart -->
+        <!-- Current Allocation Pie Chart -->
         <div class="card chart-card">
           <app-pie-chart
             title="Current Portfolio Allocation"
@@ -317,7 +326,7 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
   styles: [
     `
       .dashboard {
-        padding: 20px;
+        padding: 16px;
         background: #f5f5f5;
         min-height: 100vh;
       }
@@ -326,9 +335,9 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
         background: white;
-        padding: 20px;
+        padding: 16px;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
@@ -336,21 +345,23 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
       .dashboard-header h1 {
         margin: 0;
         color: #333;
+        font-size: 1.5rem;
       }
 
       .status-indicators {
         display: flex;
-        gap: 20px;
+        gap: 12px;
       }
 
       .status-item {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
         padding: 8px 12px;
-        border-radius: 4px;
+        border-radius: 6px;
         font-size: 14px;
         font-weight: 500;
+        min-height: 36px;
       }
 
       .status-item.online {
@@ -368,31 +379,37 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
         height: 8px;
         border-radius: 50%;
         background: currentColor;
+        flex-shrink: 0;
+      }
+
+      .status-text {
+        white-space: nowrap;
       }
 
       .dashboard-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-        gap: 20px;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 16px;
       }
 
       .card {
         background: white;
         border-radius: 8px;
-        padding: 20px;
+        padding: 16px;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
       }
 
       .card h2 {
-        margin: 0 0 20px 0;
+        margin: 0 0 16px 0;
         color: #333;
         border-bottom: 2px solid #eee;
-        padding-bottom: 10px;
+        padding-bottom: 8px;
+        font-size: 1.2rem;
       }
 
-      /* 🔥 NEW: Chart card styling */
       .chart-card {
-        height: 400px;
+        min-height: 300px;
         display: flex;
         flex-direction: column;
       }
@@ -402,7 +419,7 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
       .trading-stats {
         display: flex;
         flex-direction: column;
-        gap: 15px;
+        gap: 12px;
       }
 
       .stat-item,
@@ -411,16 +428,20 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
         justify-content: space-between;
         align-items: center;
         padding: 8px 0;
+        min-height: 32px;
       }
 
       .label {
         font-weight: 500;
         color: #666;
+        font-size: 14px;
       }
 
       .value {
         font-weight: 600;
         color: #333;
+        font-size: 14px;
+        text-align: right;
       }
 
       .value.positive {
@@ -453,39 +474,55 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
 
       .portfolio-summary {
         border-bottom: 1px solid #eee;
-        padding-bottom: 15px;
-        margin-bottom: 15px;
+        padding-bottom: 12px;
+        margin-bottom: 12px;
       }
 
       .assets-list {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
       }
 
       .asset-item {
-        padding: 10px;
+        padding: 12px;
         background: #f8f9fa;
-        border-radius: 4px;
+        border-radius: 6px;
       }
 
       .asset-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 5px;
+        margin-bottom: 6px;
+        gap: 8px;
+      }
+
+      .asset-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+        min-width: 0;
       }
 
       .asset-name {
         font-weight: 600;
         color: #333;
+        font-size: 14px;
+      }
+
+      .asset-threshold {
+        font-size: 12px;
+        color: #666;
       }
 
       .asset-deviation {
         font-size: 12px;
         font-weight: 600;
-        padding: 2px 6px;
-        border-radius: 3px;
+        padding: 4px 8px;
+        border-radius: 4px;
+        flex-shrink: 0;
       }
 
       .asset-deviation.positive {
@@ -499,7 +536,7 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
       }
 
       .asset-values {
-        font-size: 14px;
+        font-size: 13px;
         color: #666;
       }
 
@@ -515,7 +552,7 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
 
       .decisions-stats h3,
       .rebalance-stats h3 {
-        margin: 0 0 10px 0;
+        margin: 0 0 8px 0;
         font-size: 16px;
         color: #555;
       }
@@ -523,20 +560,22 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
       .decision-info {
         display: flex;
         flex-direction: column;
-        gap: 15px;
+        gap: 12px;
       }
 
       .decision-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 8px;
       }
 
       .decision-type {
-        padding: 6px 12px;
-        border-radius: 4px;
+        padding: 8px 12px;
+        border-radius: 6px;
         font-weight: 600;
         font-size: 14px;
+        flex-shrink: 0;
       }
 
       .decision-type.buy {
@@ -552,12 +591,13 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
       .decision-time {
         font-size: 12px;
         color: #666;
+        text-align: right;
       }
 
       .decision-details {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 6px;
       }
 
       .detail-item {
@@ -565,45 +605,61 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
         justify-content: space-between;
         align-items: center;
         padding: 4px 0;
+        min-height: 28px;
       }
 
-      .logs-container {
+      .logs-card {
+        grid-column: 1 / -1;
+        background: #1a1a1a;
+        color: #00ff00;
+        font-family: "Courier New", monospace;
+        padding: 16px;
+        border-radius: 8px;
+        min-height: 250px;
         display: flex;
         flex-direction: column;
-        gap: 8px;
       }
 
-      .log-item {
-        padding: 8px 12px;
-        background: #f8f9fa;
-        border-radius: 4px;
-        font-family: monospace;
-        font-size: 12px;
+      .logs-card h2 {
+        color: #00ff00;
+        border-bottom: 1px solid #333;
+        margin-bottom: 12px;
+        font-size: 1.1rem;
+      }
+
+      .logs-monitor {
+        flex: 1;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        font-size: 13px;
         line-height: 1.4;
-        border-left: 3px solid #dee2e6;
       }
 
-      .log-item.buy {
-        border-left-color: #28a745;
-        background: #d4edda;
+      .log-line {
+        padding: 2px 4px;
+        word-break: break-word;
+        margin-bottom: 2px;
       }
 
-      .log-item.sell {
-        border-left-color: #dc3545;
-        background: #f8d7da;
+      .log-line.buy {
+        color: #00ff00;
       }
 
-      .log-item.error {
-        border-left-color: #dc3545;
-        background: #f8d7da;
-        color: #721c24;
+      .log-line.sell {
+        color: #ff4444;
+      }
+
+      .log-line.error {
+        color: #ffae00;
       }
 
       .logs-footer {
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid #eee;
+        margin-top: 8px;
+        font-size: 11px;
+        color: #888;
         text-align: right;
+        border-top: 1px solid #333;
+        padding-top: 8px;
       }
 
       .no-data {
@@ -611,66 +667,168 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
         color: #666;
         font-style: italic;
         padding: 20px;
+        font-size: 14px;
       }
 
+      /* Mobile Optimizations */
       @media (max-width: 768px) {
+        .dashboard {
+          padding: 12px;
+        }
+
         .dashboard-grid {
           grid-template-columns: 1fr;
+          gap: 12px;
         }
 
         .dashboard-header {
           flex-direction: column;
-          gap: 15px;
+          gap: 12px;
           text-align: center;
+          padding: 12px;
+        }
+
+        .dashboard-header h1 {
+          font-size: 1.3rem;
+        }
+
+        .status-indicators {
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: 8px;
+        }
+
+        .status-item {
+          font-size: 13px;
+          padding: 6px 10px;
+        }
+
+        .card {
+          padding: 12px;
+        }
+
+        .card h2 {
+          font-size: 1.1rem;
+          margin-bottom: 12px;
+        }
+
+        .chart-card {
+          min-height: 250px;
+        }
+
+        .logs-card {
+          min-height: 200px;
+          padding: 12px;
+        }
+
+        .logs-monitor {
+          font-size: 12px;
+        }
+
+        .asset-header {
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .decision-header {
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+
+        .decision-time {
+          flex-basis: 100%;
+          text-align: left;
+          margin-top: 4px;
         }
       }
 
-      .logs-card {
-        grid-column: 1 / -1; /* full width */
-        background: black;
-        color: #00ff00;
-        font-family: monospace;
-        padding: 15px;
-        border-radius: 8px;
-        height: 300px; /* or more */
-        display: flex;
-        flex-direction: column;
+      /* Small Mobile Optimizations */
+      @media (max-width: 480px) {
+        .dashboard {
+          padding: 8px;
+        }
+
+        .dashboard-header {
+          padding: 8px;
+        }
+
+        .dashboard-header h1 {
+          font-size: 1.2rem;
+        }
+
+        .status-indicators {
+          flex-direction: column;
+          align-items: stretch;
+          gap: 6px;
+        }
+
+        .status-item {
+          justify-content: center;
+        }
+
+        .card {
+          padding: 8px;
+        }
+
+        .chart-card {
+          min-height: 200px;
+        }
+
+        .logs-card {
+          min-height: 180px;
+          padding: 8px;
+        }
+
+        .stat-item,
+        .stat-row {
+          font-size: 13px;
+          gap: 8px;
+        }
+
+        .label,
+        .value {
+          font-size: 13px;
+        }
+
+        .asset-item {
+          padding: 8px;
+        }
+
+        .asset-header {
+          align-items: flex-start;
+        }
+
+        .asset-info {
+          gap: 1px;
+        }
+
+        .asset-name {
+          font-size: 13px;
+        }
+
+        .asset-threshold {
+          font-size: 11px;
+        }
+
+        .asset-deviation {
+          font-size: 11px;
+          padding: 2px 6px;
+        }
+
+        .logs-monitor {
+          font-size: 11px;
+        }
       }
 
-      .logs-card h2 {
-        color: #0f0;
-        border-bottom: 1px solid #333;
-        margin-bottom: 10px;
-      }
+      /* Landscape Mobile Optimizations */
+      @media (max-width: 768px) and (orientation: landscape) {
+        .dashboard-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
 
-      .logs-monitor {
-        flex: 1;
-        overflow-y: auto;
-        white-space: pre-wrap;
-      }
-
-      .log-line {
-        padding: 2px 4px;
-        line-height: 1.4;
-      }
-
-      .log-line.buy {
-        color: #00ff00; /* green text for BUY */
-      }
-
-      .log-line.sell {
-        color: #ff4444; /* red text for SELL */
-      }
-
-      .log-line.error {
-        color: #ffae00; /* yellow/orange for errors */
-      }
-
-      .logs-footer {
-        margin-top: 10px;
-        font-size: 12px;
-        color: #888;
-        text-align: right;
+        .logs-card {
+          grid-column: 1 / -1;
+        }
       }
     `,
   ],
@@ -700,7 +858,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private loadInitialData() {
-    // Load all data initially
     this.loadPortfolioStats();
     this.loadTradingStats();
     this.loadLatestROI();
@@ -710,9 +867,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private startPeriodicUpdates() {
-    // Update data every 30 seconds
     const updateInterval = interval(30000);
-
     this.subscriptions.push(
       updateInterval.subscribe(() => {
         this.loadInitialData();
@@ -793,7 +948,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   getTargetPieData() {
     if (!this.portfolioStats) return [];
-
     return this.portfolioStats.assets
       .filter((asset) => asset.targetValue > 0)
       .map((asset) => ({
@@ -805,7 +959,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   getCurrentPieData() {
     if (!this.portfolioStats) return [];
-
     return this.portfolioStats.assets
       .filter((asset) => asset.currentValue > 0)
       .map((asset) => ({

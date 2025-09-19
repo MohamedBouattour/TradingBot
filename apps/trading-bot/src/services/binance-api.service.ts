@@ -358,14 +358,14 @@ export class BinanceApiService {
         return;
       }
 
+      const ratioToSell =
+        (assetValue - protfolioItem.value) / protfolioItem.value;
       const amount = parseFloat(
-        (freeBalance * protfolioItem.threshold).toFixed(
-          protfolioItem.quantityPrecision
-        )
+        (freeBalance * ratioToSell).toFixed(protfolioItem.quantityPrecision)
       );
 
       // Sell if overweight (current value > target * 1.05)
-      if (assetValue > protfolioItem.value * (1 + protfolioItem.threshold)) {
+      if (assetValue - protfolioItem.value > 5.02) {
         if (amount > 0 && amount * assetPrice >= 5) {
           LogService.logRebalance(
             `${protfolioItem.asset}: SELL ${amount} (~$${(
