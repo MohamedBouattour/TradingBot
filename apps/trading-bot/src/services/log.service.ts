@@ -2,14 +2,6 @@ import * as fs from "fs";
 
 interface LogEntry {
   timestamp: string;
-  level: "INFO" | "WARN" | "ERROR" | "DEBUG";
-  category:
-    | "SYSTEM"
-    | "TRADING"
-    | "REBALANCE"
-    | "MEMORY"
-    | "ASSET"
-    | "DECISION";
   message: string;
   data?: any;
 }
@@ -93,8 +85,6 @@ export class LogService {
     try {
       const logEntry: LogEntry = {
         timestamp: new Date().toISOString(),
-        level,
-        category,
         message,
         data,
       };
@@ -120,7 +110,7 @@ export class LogService {
   }
 
   private static formatLogEntry(entry: LogEntry): string {
-    const baseLog = `${entry.timestamp} [${entry.level}] [${entry.category}] ${entry.message}`;
+    const baseLog = `${entry.timestamp} ${entry.message}`;
 
     // Simply ignore the data parameter - no JSON logging
     return `${baseLog}\n`;

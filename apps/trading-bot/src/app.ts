@@ -154,9 +154,8 @@ export async function calculateRoi() {
     console.log(`Total portfolio value: $${portfolioValueInUSD.toFixed(2)}`);
 
     const total = assetValue[1] + portfolioValueInUSD;
-    const roi =
-      ((total + assetValue[1] - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
-    const pnl = total + assetValue[1] - INITIAL_BALANCE;
+    const roi = ((total - INITIAL_BALANCE) / INITIAL_BALANCE) * 100;
+    const pnl = total - INITIAL_BALANCE;
 
     const roiData = {
       assetValue: assetValue[0],
@@ -201,7 +200,7 @@ async function rebalancePorfolio() {
     const rebalanceResults = await Promise.allSettled(
       PORTFOLIO.map(async (item) => {
         try {
-          const result = await BinanceApiService.handleReabalance(
+          const result = await BinanceApiService.handleRebalance(
             item,
             BASE_CURRENCY
           );

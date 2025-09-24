@@ -12,6 +12,7 @@ import {
   BASE_CURRENCY,
   MULTIPLIER,
   PAIR,
+  REBALANCE,
 } from "../constants";
 import { LogService } from "./log.service";
 import { ApiClientService } from "./api-client.service";
@@ -279,207 +280,191 @@ export class BinanceApiService {
     );
   }
 
-  public static async handleReabalance(
-    protfolioItem: PortfolioItem,
+  public static async handleRebalance(
+    portfolioItem: PortfolioItem,
     baseCurrency: string
   ): Promise<Order | void> {
-    const timestamp = new Date().toISOString();
-    let rebalanceResult: any = {
-      asset: protfolioItem.asset,
-      status: "SUCCESS" as const,
+    const result: RebalanceResult = {
+      asset: portfolioItem.asset,
+      status: "SUCCESS",
       currentValue: 0,
-      targetValue: protfolioItem.value,
+      targetValue: portfolioItem.value,
       deviation: 0,
-      timestamp,
+      timestamp: new Date().toISOString(),
+    };
+
+    const sendResult = async () => {
+      if (startupData.withApi) {
+        await ApiClientService.sendRebalanceResult(result);
+      }
     };
 
     try {
+      // Fetch account and price data
       const account = await BinanceApiService.binance.account();
-
-      const symbol = protfolioItem.asset + baseCurrency;
+      const symbol = `${portfolioItem.asset}${baseCurrency}`;
       const assetPrice = await BinanceApiService.getMarketPrice(symbol);
 
       const assetBalance = account.balances.find(
-        (item: any) => item.asset === protfolioItem.asset
+        (b: any) => b.asset === portfolioItem.asset
+      );
+      const baseCurrencyBalance = parseFloat(
+        account.balances.find((b: any) => b.asset === baseCurrency)?.free || "0"
       );
 
+      // Handle missing asset
       if (!assetBalance) {
         LogService.logRebalance(
-          `${protfolioItem.asset}: ERROR - Asset not found in account balances`
+          `${portfolioItem.asset}: ERROR - Asset not found`
         );
-        // Set to 0 if asset not found
-        protfolioItem.valueInBaseCurrency = 0;
-        rebalanceResult.status = "ERROR";
-        rebalanceResult.error = "Asset not found in account balances";
-        startupData.withApi &&
-          (await ApiClientService.sendRebalanceResult(rebalanceResult));
+        portfolioItem.valueInBaseCurrency = 0;
+        result.status = "ERROR";
+        result.error = "Asset not found in account balances";
+        await sendResult();
         return;
       }
 
+      // Calculate balances
       const freeBalance = parseFloat(assetBalance.free || "0");
-      const lockedBalance = parseFloat(assetBalance.locked || "0");
-      const totalBalance = freeBalance + lockedBalance;
+      const totalBalance = freeBalance + parseFloat(assetBalance.locked || "0");
       const assetValue = totalBalance * assetPrice;
 
-      // Store the current USD value in the portfolio item
-      protfolioItem.valueInBaseCurrency = assetValue;
-
-      // Update portfolio value in API
-      startupData.withApi &&
-        (await ApiClientService.updatePortfolioValue(
-          protfolioItem.asset,
+      // Update portfolio value
+      portfolioItem.valueInBaseCurrency = assetValue;
+      if (startupData.withApi) {
+        await ApiClientService.updatePortfolioValue(
+          portfolioItem.asset,
           assetValue
-        ));
+        );
+      }
 
-      // Update rebalance result with current values
-      rebalanceResult.currentValue = assetValue;
-      rebalanceResult.deviation =
-        ((assetValue - protfolioItem.value) / protfolioItem.value) * 100;
+      // Update result and log status
+      result.currentValue = assetValue;
+      result.deviation =
+        ((assetValue - portfolioItem.value) / portfolioItem.value) * 100;
 
-      // Log current asset status in readable format
       LogService.logRebalance(
-        `${protfolioItem.asset}: $${assetValue.toFixed(
-          2
-        )} / $${protfolioItem.value.toFixed(2)} (${(
-          ((assetValue - protfolioItem.value) / protfolioItem.value) *
-          100
-        ).toFixed(1)}%)`
+        `${portfolioItem.asset}: $${assetValue.toFixed(2)} / $${portfolioItem.value.toFixed(2)} ` +
+          `(${result.deviation.toFixed(1)}%) ~= ${(assetValue - portfolioItem.value).toFixed(2)}$`
       );
 
-      // Skip rebalancing if balance is too small
-      if (freeBalance < 0.001) {
+      // Skip if balance too small
+      if (freeBalance < REBALANCE.MIN_BALANCE) {
         LogService.logRebalance(
-          `${protfolioItem.asset}: SKIP - Balance too small (${freeBalance})`
+          `${portfolioItem.asset}: SKIP - Balance too small (${freeBalance})`
         );
-        rebalanceResult.status = "SKIPPED";
-        rebalanceResult.action = "BALANCED";
-        startupData.withApi &&
-          (await ApiClientService.sendRebalanceResult(rebalanceResult));
+        result.status = "SKIPPED";
+        result.action = "BALANCED";
+        await sendResult();
         return;
       }
 
-      const ratioToSell =
-        (assetValue - protfolioItem.value) / protfolioItem.value;
-      const amount = parseFloat(
-        (freeBalance * ratioToSell).toFixed(protfolioItem.quantityPrecision)
-      );
+      const valueDiff = assetValue - portfolioItem.value;
 
-      // Sell if overweight (current value > target * 1.05)
-      if (assetValue - protfolioItem.value > 5.02) {
-        if (amount > 0 && amount * assetPrice >= 5) {
+      // SELL: Overweight position
+      if (valueDiff > REBALANCE.MIN_TRADE_VALUE) {
+        const quantity = parseFloat(
+          (freeBalance * (valueDiff / portfolioItem.value)).toFixed(
+            portfolioItem.quantityPrecision
+          )
+        );
+        const tradeValue = quantity * assetPrice;
+
+        if (quantity > 0 && tradeValue >= REBALANCE.MIN_TRADE_VALUE) {
           LogService.logRebalance(
-            `${protfolioItem.asset}: SELL ${amount} (~$${(
-              amount * assetPrice
-            ).toFixed(2)}) - OVERWEIGHT`
+            `${portfolioItem.asset}: SELL ${quantity} (~$${tradeValue.toFixed(2)}) - OVERWEIGHT`
           );
 
-          const order = await BinanceApiService.sell(symbol, amount);
+          const order = await BinanceApiService.sell(symbol, quantity);
 
           LogService.logRebalance(
-            `${protfolioItem.asset}: SELL completed - ${order.status} (${order.executedQty})`
+            `${portfolioItem.asset}: SELL completed - ${order.status} (${order.executedQty})`
           );
 
-          rebalanceResult.action = "SELL";
-          rebalanceResult.quantity = amount;
-          rebalanceResult.price = assetPrice;
-          rebalanceResult.value = amount * assetPrice;
-          startupData.withApi &&
-            (await ApiClientService.sendRebalanceResult(rebalanceResult));
+          result.action = "SELL";
+          result.quantity = quantity;
+          result.price = assetPrice;
+          result.value = tradeValue;
+          await sendResult();
 
           return order;
         } else {
           LogService.logRebalance(
-            `${protfolioItem.asset}: SELL skipped - Value too low ($${(
-              amount * assetPrice
-            ).toFixed(2)})`
+            `${portfolioItem.asset}: SELL skipped - Value too low ($${tradeValue.toFixed(2)})`
           );
-          rebalanceResult.status = "SKIPPED";
-          rebalanceResult.action = "SELL";
-          startupData.withApi &&
-            (await ApiClientService.sendRebalanceResult(rebalanceResult));
+          result.status = "SKIPPED";
+          result.action = "SELL";
+          await sendResult();
         }
       }
-      // Buy if underweight (current value < threshold)
+      // BUY: Underweight position
       else if (
         assetValue <
-        protfolioItem.value * (1 - protfolioItem.threshold)
+        portfolioItem.value * (1 - portfolioItem.threshold)
       ) {
-        const buyinQuantity = parseFloat(
+        const quantity = parseFloat(
           (
-            (protfolioItem.value / assetPrice) *
-            (protfolioItem.threshold + 0.02) *
-            (protfolioItem.increaseOnBuy ? MULTIPLIER : 1)
-          ).toFixed(protfolioItem.quantityPrecision)
+            (portfolioItem.value / assetPrice) *
+            (portfolioItem.threshold + REBALANCE.BUY_ADJUSTMENT) *
+            (portfolioItem.increaseOnBuy ? MULTIPLIER : 1)
+          ).toFixed(portfolioItem.quantityPrecision)
         );
+        const tradeValue = quantity * assetPrice;
 
-        if (buyinQuantity > 0) {
+        if (
+          quantity > 0 &&
+          baseCurrencyBalance > tradeValue &&
+          tradeValue > REBALANCE.MIN_TRADE_VALUE
+        ) {
           LogService.logRebalance(
-            `${protfolioItem.asset}: BUY ${buyinQuantity} (~$${(
-              buyinQuantity * assetPrice
-            ).toFixed(2)}) - UNDERWEIGHT`
+            `${portfolioItem.asset}: BUY ${quantity} (~$${tradeValue.toFixed(2)}) - UNDERWEIGHT`
           );
 
-          if (buyinQuantity * assetPrice > 5.02) {
-            const order = await BinanceApiService.buy(symbol, buyinQuantity);
-            protfolioItem.value =
-              protfolioItem.value * (1 + protfolioItem.threshold);
-            LogService.logRebalance(
-              `${protfolioItem.asset}: BUY completed - ${order.status} (${order.executedQty})`
-            );
+          const order = await BinanceApiService.buy(symbol, quantity);
 
-            rebalanceResult.action = "BUY";
-            rebalanceResult.quantity = buyinQuantity;
-            rebalanceResult.price = assetPrice;
-            rebalanceResult.value = buyinQuantity * assetPrice;
-            startupData.withApi &&
-              (await ApiClientService.sendRebalanceResult(rebalanceResult));
-            protfolioItem.value = protfolioItem.value * MULTIPLIER;
-            return order;
-          } else {
-            rebalanceResult.status = "SKIPPED";
-            rebalanceResult.action = "BUY";
-            startupData.withApi &&
-              (await ApiClientService.sendRebalanceResult(rebalanceResult));
-          }
+          portfolioItem.value *= (1 + portfolioItem.threshold) * MULTIPLIER;
+
+          LogService.logRebalance(
+            `${portfolioItem.asset}: BUY completed - ${order.status} (${order.executedQty})`
+          );
+
+          result.action = "BUY";
+          result.quantity = quantity;
+          result.price = assetPrice;
+          result.value = tradeValue;
+          await sendResult();
+
+          return order;
         } else {
           LogService.logRebalance(
-            `${protfolioItem.asset}: BUY skipped - Zero quantity calculated`
+            `${portfolioItem.asset}: BUY skipped - Zero quantity calculated`
           );
-          rebalanceResult.status = "SKIPPED";
-          rebalanceResult.action = "BUY";
-          startupData.withApi &&
-            (await ApiClientService.sendRebalanceResult(rebalanceResult));
+          result.status = "SKIPPED";
+          result.action = "BUY";
+          await sendResult();
         }
-      } else {
-        rebalanceResult.action = "BALANCED";
-        startupData.withApi &&
-          (await ApiClientService.sendRebalanceResult(rebalanceResult));
-        /* LogService.logRebalance(
-          `${protfolioItem.asset}: BALANCED - No action needed`
-        ); */
+      }
+      // BALANCED: No action needed
+      else {
+        result.action = "BALANCED";
+        await sendResult();
       }
     } catch (error: any) {
       LogService.logError(
-        `Error rebalancing ${protfolioItem.asset}: ${error.message}`,
+        `Error rebalancing ${portfolioItem.asset}: ${error.message}`,
         {
-          asset: protfolioItem.asset,
+          asset: portfolioItem.asset,
           error: error.message,
           stack: error.stack,
           timestamp: new Date().toISOString(),
         }
       );
 
-      rebalanceResult.status = "ERROR";
-      rebalanceResult.error = error.message;
-      startupData.withApi &&
-        (await ApiClientService.sendRebalanceResult(rebalanceResult));
+      result.status = "ERROR";
+      result.error = error.message;
+      await sendResult();
 
       throw error;
     }
-  }
-
-  // Method to clear caches for cleanup
-  public static clearCaches() {
-    this.priceCache.clear();
   }
 }
