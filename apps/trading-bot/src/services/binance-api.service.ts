@@ -343,7 +343,7 @@ export class BinanceApiService {
         )} / $${protfolioItem.value.toFixed(2)} (${(
           ((assetValue - protfolioItem.value) / protfolioItem.value) *
           100
-        ).toFixed(1)}%)`
+        ).toFixed(1)}%) ~= ${(assetValue - protfolioItem.value).toFixed(2)}$`
       );
 
       // Skip rebalancing if balance is too small

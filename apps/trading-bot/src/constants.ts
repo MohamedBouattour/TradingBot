@@ -16,7 +16,7 @@ export let PORTFOLIO: PortfolioItem[] = [
   {
     asset: "BTC",
     value: 230,
-    threshold: 0.05,
+    threshold: 0.02,
     pricePresision: 2,
     quantityPrecision: 5,
     increaseOnBuy: true,
@@ -24,7 +24,7 @@ export let PORTFOLIO: PortfolioItem[] = [
   {
     asset: "ETH",
     value: 210,
-    threshold: 0.07,
+    threshold: 0.03,
     pricePresision: 2,
     quantityPrecision: 4,
     increaseOnBuy: true,
@@ -32,7 +32,7 @@ export let PORTFOLIO: PortfolioItem[] = [
   {
     asset: "BNB",
     value: 180,
-    threshold: 0.1,
+    threshold: 0.035,
     pricePresision: 2,
     quantityPrecision: 3,
     increaseOnBuy: true,
@@ -40,7 +40,7 @@ export let PORTFOLIO: PortfolioItem[] = [
   {
     asset: "SOL",
     value: 180,
-    threshold: 0.1,
+    threshold: 0.035,
     pricePresision: 2,
     quantityPrecision: 3,
     increaseOnBuy: true,
@@ -58,7 +58,7 @@ export const AMOUNT_PRECISION = 5;
 export const PRICE_PRECISION = 0;
 export const BALANCE_POSTIOTION_RATIO = 0.333;
 export const TARGET_ROI = 1.02;
-export const INITIAL_BALANCE = 1053.86 + 254.63;
+export const INITIAL_BALANCE = 1042;
 
 // Strategy-specific constants (only used by specific strategies)
 export const SHORT_MA = 25;
