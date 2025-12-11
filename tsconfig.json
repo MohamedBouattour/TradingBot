@@ -2,6 +2,12 @@
   "compileOnSave": false,
   "compilerOptions": {
     "outDir": "./dist/out-tsc",
+    "baseUrl": ".",
+    "paths": {
+      "@bot-api/*": ["apps/bot-api/src/*"],
+      "@trading-bot/*": ["apps/trading-bot/src/*"],
+      "@ui/*": ["apps/ui/src/*"]
+    },
     "strict": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
@@ -14,8 +20,9 @@
     "importHelpers": true,
     "target": "ES2022",
     "module": "commonjs",
+    "moduleResolution": "node",
     "emitDecoratorMetadata": true,
     "sourceMap": true,
-    "forceConsistentCasingInFileNames": true,
+    "forceConsistentCasingInFileNames": true
   }
 }

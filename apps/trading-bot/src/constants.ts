@@ -57,16 +57,16 @@ export const REBALANCE = {
 
 export const MULTIPLIER = 1.035;
 // Core trading configuration
-export const TIME_FRAME = "1h";
-export const ASSET = "BTC";
+export const TIME_FRAME = "30m";
+export const ASSET = "ETH";
 export const BASE_CURRENCY = "USDT";
 export const PAIR = ASSET + BASE_CURRENCY;
 
 // Trading parameters
-export const AMOUNT_PRECISION = 5;
-export const PRICE_PRECISION = 0;
-export const BALANCE_POSTIOTION_RATIO = 0.333;
-export const TARGET_ROI = 1.02;
+export const AMOUNT_PRECISION = 4;
+export const PRICE_PRECISION = 2;
+export const BALANCE_POSTIOTION_RATIO = 0.25;
+export const TARGET_ROI = 1.012;
 export const INITIAL_BALANCE = 1042;
 
 // Strategy-specific constants (only used by specific strategies)

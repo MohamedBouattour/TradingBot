@@ -115,6 +115,7 @@ export class BinanceApiService {
     if (price) {
       return BinanceApiService.binance.buy(symbol, quantity, price);
     }
+    // Use marketBuy for market orders (quantity in base asset)
     return BinanceApiService.binance.marketBuy(symbol, quantity);
   }
   /**
@@ -222,24 +223,23 @@ export class BinanceApiService {
     slPrice?: number
   ): Promise<Order> {
     const order: Order = await BinanceApiService.buy(asset, quantity);
-    if (order.status === "FILLED" && tpPrice) {
-      await BinanceApiService.binance.order(
-        "LIMIT" as OrderType,
-        "SELL" as OrderSide,
-        asset,
-        quantity,
-        tpPrice
-      );
-      /* await BinanceApiService.binance.order(
-        "TAKE_PROFIT_LIMIT" as OrderType,
-        "SELL" as OrderSide,
-        asset,
-        quantity,
-        tpPrice,
-        {
-          stopPrice: slPrice,
-        }
-      ); */
+    if (order.status === "FILLED") {
+      // Set Take Profit order (LIMIT SELL)
+      if (tpPrice) {
+        await BinanceApiService.binance.order(
+          "LIMIT" as OrderType,
+          "SELL" as OrderSide,
+          asset,
+          quantity,
+          tpPrice
+        );
+      }
+      
+      // Set Stop Loss order (STOP_LOSS SELL)
+      if (slPrice) {
+        const roundedSlPrice = Math.round(slPrice * 100) / 100; // Round to 2 decimals
+        await BinanceApiService.setStopLossWithQuantity(asset, roundedSlPrice, quantity);
+      }
     } else {
       throw new Error("Order not filled");
     }
@@ -278,6 +278,48 @@ export class BinanceApiService {
         stopPrice,
       }
     );
+  }
+
+  public static async setStopLossWithQuantity(
+    symbol: string,
+    stopPrice: number,
+    quantity: number
+  ): Promise<Order> {
+    return BinanceApiService.binance.order(
+      "STOP_LOSS" as OrderType,
+      "SELL" as OrderSide,
+      symbol,
+      quantity,
+      stopPrice,
+      {
+        stopPrice,
+      }
+    );
+  }
+
+  public static async setTakeProfit(
+    symbol: string,
+    tpPrice: number,
+    quantity: number
+  ): Promise<Order> {
+    return BinanceApiService.binance.order(
+      "LIMIT" as OrderType,
+      "SELL" as OrderSide,
+      symbol,
+      quantity,
+      tpPrice
+    );
+  }
+
+  public static async getRecentTrades(
+    symbol: string,
+    limit: number = 20
+  ): Promise<any[]> {
+    try {
+      return await BinanceApiService.binance.trades(symbol, { limit });
+    } catch (error: any) {
+      throw new Error(`Failed to get recent trades: ${error.message}`);
+    }
   }
 
   public static async handleRebalance(

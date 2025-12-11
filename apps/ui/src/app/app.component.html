@@ -1,1 +1,15 @@
-<router-outlet></router-outlet>
+<nav class="main-nav">
+  <div class="nav-container">
+    <h1 class="nav-title">Trading Bot</h1>
+    <div class="nav-links">
+      <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
+      <a routerLink="/bot-control" routerLinkActive="active">Bot Control</a>
+      <a routerLink="/bot-config" routerLinkActive="active">Configuration</a>
+      <a routerLink="/chart" routerLinkActive="active">Price Chart</a>
+      <a routerLink="/backtest" routerLinkActive="active">Backtest</a>
+    </div>
+  </div>
+</nav>
+<main class="main-content">
+  <router-outlet></router-outlet>
+</main>

@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { RouterLink } from "@angular/router";
 import { interval, Subscription, catchError, of } from "rxjs";
 import {
   BotApiService,
@@ -10,11 +11,14 @@ import {
   LogsResponse,
 } from "../../core/services/bot-api.service";
 import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.component";
+import { BotControlComponent } from "../bot-control/bot-control.component";
+import { BotConfigComponent } from "../bot-config/bot-config.component";
+import { PriceChartComponent } from "../price-chart/price-chart.component";
 
 @Component({
   selector: "app-dashboard",
   standalone: true,
-  imports: [CommonModule, PieChartComponent],
+  imports: [CommonModule, PieChartComponent, BotControlComponent, BotConfigComponent, PriceChartComponent, RouterLink],
   template: `
     <div class="dashboard">
       <header class="dashboard-header">
@@ -319,6 +323,21 @@ import { PieChartComponent } from "../../core/components/pie-chart/pie-chart.com
           >
             <p>No recent logs available</p>
           </div>
+        </div>
+
+        <!-- Bot Control Card -->
+        <div class="card bot-control-card">
+          <app-bot-control></app-bot-control>
+        </div>
+
+        <!-- Bot Configuration Card -->
+        <div class="card bot-config-card">
+          <app-bot-config></app-bot-config>
+        </div>
+
+        <!-- Price Chart Card -->
+        <div class="card chart-card-full">
+          <app-price-chart [asset]="'BTC'" [timeframe]="'1h'"></app-price-chart>
         </div>
       </div>
     </div>

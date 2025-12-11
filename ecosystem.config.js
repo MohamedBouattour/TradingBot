@@ -18,23 +18,15 @@ module.exports = {
       watch: false,
       max_restarts: 10,
       min_uptime: "10s",
-
-      // Log configuration
-      log_type: "raw", // Changed from 'json' to 'raw' for simpler logs
+      log_type: "raw",
       merge_logs: true,
       log_date_format: "YYYY-MM-DD HH:mm:ss Z",
-
-      // Disable all log rotation
-      out_file: "/home/admin/bot/output.log", // Use absolute path
-      error_file: "/home/admin/bot/output.log",
-      pid_file: "/home/admin/bot/bot.pid",
-
-      // Disable log rotation completely
-      disable_logs: false,
-      log_rotate: false,
-      max_log_size: 0, // 0 means unlimited
-      retain_logs: 0, // Keep all logs
-      rotate_logs: false,
+      out_file: "./output.log",
+      error_file: "./output.log",
+      pid_file: "./bot.pid",
+      log_rotate: true,
+      max_log_size: "100M",
+      retain_logs: 5,
     },
   ],
 };

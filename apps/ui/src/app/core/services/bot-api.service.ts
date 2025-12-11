@@ -1,6 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { Observable } from "rxjs";
+import { environment } from "../../../../environments/environments";
 
 export interface PortfolioItem {
   asset: string;
@@ -77,9 +78,16 @@ export interface LogsResponse {
   providedIn: "root",
 })
 export class BotApiService {
-  private readonly apiUrl = window.location.origin + "/api";
+  // Use environment API URL configuration
+  public readonly apiUrl = environment.apiUrl.startsWith('http') 
+    ? environment.apiUrl 
+    : (typeof window !== 'undefined' && window.location.origin)
+      ? window.location.origin + environment.apiUrl
+      : "http://localhost:3002/api";
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    console.log('BotApiService initialized with API URL:', this.apiUrl);
+  }
 
   // Portfolio endpoints
   getPortfolio(): Observable<PortfolioItem[]> {
@@ -135,5 +143,38 @@ export class BotApiService {
   // Health check
   getApiHealth(): Observable<any> {
     return this.http.get(`${this.apiUrl}/trading/health`);
+  }
+
+  // Bot Control endpoints
+  getBotStatus(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/bot/status`);
+  }
+
+  updateBotConfig(config: { asset?: string; timeframe?: string; strategy?: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/bot/config`, config);
+  }
+
+  getBotConfig(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/bot/config`);
+  }
+
+  startBot(): Observable<any> {
+    return this.http.post(`${this.apiUrl}/bot/start`, {});
+  }
+
+  stopBot(): Observable<any> {
+    return this.http.post(`${this.apiUrl}/bot/stop`, {});
+  }
+
+  runBacktest(request: { asset: string; timeframe: string; strategy: string; startDate?: string; endDate?: string; targetROI?: number }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/bot/backtest`, request);
+  }
+
+  getBacktestHistory(limit: number = 10): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/bot/backtest?limit=${limit}`);
+  }
+
+  getPriceData(asset: string, timeframe: string = '1h', limit: number = 100): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/bot/price-data/${asset}?timeframe=${timeframe}&limit=${limit}`);
   }
 }

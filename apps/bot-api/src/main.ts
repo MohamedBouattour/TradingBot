@@ -11,8 +11,9 @@ async function bootstrap() {
   // Enable CORS for cross-origin requests
   app.enableCors({
     origin: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Serve static files from UI directory
@@ -35,5 +36,10 @@ async function bootstrap() {
   
   console.log(`Bot API is running on: http://localhost:${port}/api`);
   console.log(`Bot UI is available at: http://localhost:${port}/`);
+  console.log(`\nAvailable endpoints:`);
+  console.log(`  GET  /api/bot - Health check`);
+  console.log(`  GET  /api/bot/status - Get bot status`);
+  console.log(`  POST /api/bot/backtest - Run backtest`);
+  console.log(`  GET  /api/bot/backtest - Get backtest history`);
 }
 bootstrap();

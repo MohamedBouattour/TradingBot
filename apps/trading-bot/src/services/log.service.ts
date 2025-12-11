@@ -89,7 +89,7 @@ export class LogService {
         data,
       };
 
-      const logMessage = this.formatLogEntry(logEntry);
+      const logMessage = this.formatLogEntry(logEntry, level, category);
 
       const stream = this.getLogStream();
       stream.write(logMessage);
@@ -109,11 +109,41 @@ export class LogService {
     }
   }
 
-  private static formatLogEntry(entry: LogEntry): string {
-    const baseLog = `${entry.timestamp} ${entry.message}`;
+  private static formatLogEntry(entry: LogEntry, level?: "INFO" | "WARN" | "ERROR" | "DEBUG", category?: string): string {
+    // Extract time from ISO timestamp for cleaner format
+    const date = new Date(entry.timestamp);
+    const timeStr = date.toLocaleTimeString('en-US', { hour12: false });
+    
+    // Clean message (remove duplicate timestamps if any)
+    let cleanMessage = entry.message;
+    
+    // Remove ISO timestamp patterns from message if present
+    cleanMessage = cleanMessage.replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\s*/g, '');
+    
+    // Format with better readability
+    // If message already contains borders or special formatting, keep it as is
+    if (cleanMessage.includes('═') || cleanMessage.includes('─')) {
+      return `${cleanMessage}\n`;
+    }
+    
+    // Format: [HH:MM:SS] Message
+    return `[${timeStr}] ${cleanMessage}\n`;
+  }
 
-    // Simply ignore the data parameter - no JSON logging
-    return `${baseLog}\n`;
+  /**
+   * Create a visual border for execution sections
+   */
+  public static createBorder(title: string, width: number = 80, char: string = "═"): string {
+    const border = char.repeat(width);
+    const titleLine = ` ${title} `.padStart(Math.floor((width + title.length + 2) / 2), char).padEnd(width, char);
+    return `${border}\n${titleLine}\n${border}`;
+  }
+
+  /**
+   * Create a separator line
+   */
+  public static createSeparator(char: string = "─", width: number = 80): string {
+    return char.repeat(width);
   }
 
   private static truncateLogFile() {

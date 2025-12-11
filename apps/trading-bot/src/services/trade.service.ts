@@ -25,22 +25,71 @@ export class TradeService {
     tpPrice?: number,
     slPrice?: number
   ): Promise<void | Order> {
-    const balance =
-      (await BinanceApiService.getBalance())[BASE_CURRENCY].available *
-      BALANCE_POSTIOTION_RATIO;
+    const timeStr = new Date().toLocaleTimeString();
+    
+    // Cancel any pending orders first to free up locked balance
+    try {
+      const openOrders = await BinanceApiService.getOpenOrders(PAIR);
+      if (openOrders && openOrders.length > 0) {
+        LogService.log(
+          `[${timeStr}] 🔄 Cancelling ${openOrders.length} pending order(s) to free balance`
+        );
+        await BinanceApiService.cancelAllOrders(PAIR);
+      }
+    } catch (error: any) {
+      // Ignore errors if no orders exist
+    }
+    
+    // Get full balance info
+    const fullBalance = await BinanceApiService.getBalance();
+    const usdtBalance = fullBalance[BASE_CURRENCY];
+    const availableUSDT = parseFloat(usdtBalance?.available || "0");
+    const lockedUSDT = parseFloat(usdtBalance?.locked || "0");
+    const totalUSDT = availableUSDT + lockedUSDT;
+    
+    // Use configured ratio of available balance (ensure we have enough)
+    const tradeBalance = availableUSDT * BALANCE_POSTIOTION_RATIO;
     const marketPrice = await BinanceApiService.getMarketPrice(PAIR);
+    
+    // Calculate quantity with proper precision
     const quantity = parseFloat(
-      (balance / marketPrice).toFixed(AMOUNT_PRECISION)
+      (tradeBalance / marketPrice).toFixed(AMOUNT_PRECISION)
     );
-    if (!balance || balance <= 10) {
+    const tradeValue = quantity * marketPrice;
+    
+    // Ensure we have enough balance for the trade (add small buffer for fees)
+    const requiredBalance = tradeValue * 1.001; // 0.1% buffer for fees
+    
+    // Log balance details
+    LogService.log(
+      `[${timeStr}] 💰 BALANCE CHECK | Available: $${availableUSDT.toFixed(2)} | Locked: $${lockedUSDT.toFixed(2)} | Total: $${totalUSDT.toFixed(2)} | Using: $${tradeBalance.toFixed(2)} (${(BALANCE_POSTIOTION_RATIO * 100).toFixed(1)}%)`
+    );
+    
+    if (!availableUSDT || availableUSDT < 10) {
       LogService.log(
-        `Insiffficient balance to buy: ${PAIR} amount: ${balance} value`
+        `[${timeStr}] ❌ Insufficient balance: Available USDT = $${availableUSDT.toFixed(2)} (minimum $10 required)`
       );
       return;
     }
+    
+    if (availableUSDT < requiredBalance) {
+      LogService.log(
+        `[${timeStr}] ❌ Insufficient balance for trade: Available=$${availableUSDT.toFixed(2)} | Required=$${requiredBalance.toFixed(2)}`
+      );
+      return;
+    }
+    
+    if (quantity <= 0 || tradeValue < 10) {
+      LogService.log(
+        `[${timeStr}] ❌ Trade value too small: Quantity=${quantity} | Value=$${tradeValue.toFixed(2)} (minimum $10 required)`
+      );
+      return;
+    }
+    
     LogService.log(
-      `Setting up trade for : ${PAIR} amount: ${quantity} BuyPrice ${marketPrice} tpPrice ${tpPrice} slPrice ${slPrice}`
+      `[${timeStr}] 📝 PLACING ORDER | Pair: ${PAIR} | Quantity: ${quantity} | Price: $${marketPrice.toFixed(2)} | Value: $${tradeValue.toFixed(2)} | TP: $${tpPrice?.toFixed(2) || 'N/A'} | SL: $${slPrice?.toFixed(2) || 'N/A'}`
     );
+    
     try {
       const order = await BinanceApiService.buyAndSetTPSL(
         PAIR,
@@ -48,9 +97,16 @@ export class TradeService {
         tpPrice,
         slPrice
       );
+      
+      LogService.log(
+        `[${timeStr}] ✅ ORDER FILLED | Order ID: ${order.orderId} | Status: ${order.status} | Executed: ${order.executedQty}`
+      );
+      
       return order;
     } catch (error: any) {
-      LogService.log(`Error executing trade: ${error.message}`);
+      LogService.logError(
+        `[${timeStr}] ❌ ORDER FAILED | ${error.message || JSON.stringify(error)}`
+      );
       return;
     }
   }
@@ -99,17 +155,56 @@ export class TradeService {
     }
   }
 
-  public static async adjustStopLoss(slPrice: number) {
+  public static async adjustStopLoss(slPrice: number, quantity?: number, tpPrice?: number) {
     try {
-      await BinanceApiService.cancelAllOrders(PAIR);
+      const timeStr = new Date().toLocaleTimeString();
+      
+      // Round stop loss price to 2 decimal places (Binance requirement for BTC)
+      const roundedSlPrice = Math.round(slPrice * 100) / 100;
+      
+      // Get existing orders - if we have SL orders, we need to cancel and recreate
+      const openOrders = await BinanceApiService.getOpenOrders(PAIR);
+      const hasSlOrders = openOrders.some((order: any) => 
+        order.type === "STOP_LOSS" || order.type === "STOP_LOSS_LIMIT"
+      );
+      
+      if (hasSlOrders) {
+        LogService.log(
+          `[${timeStr}] 🔄 Cancelling existing orders to update stop loss`
+        );
+        // Cancel all orders (including TP), then recreate both
+        await BinanceApiService.cancelAllOrders(PAIR);
+        
+        // Recreate TP order if provided
+        if (tpPrice && quantity) {
+          try {
+            await BinanceApiService.setTakeProfit(PAIR, tpPrice, quantity);
+            LogService.log(
+              `[${timeStr}] ✅ TP order recreated at $${tpPrice.toFixed(2)}`
+            );
+          } catch (error: any) {
+            LogService.logWarning(
+              `[${timeStr}] ⚠️  Failed to recreate TP order: ${error.message}`
+            );
+          }
+        }
+      }
+      
+      LogService.log(
+        `[${timeStr}] 🔧 Setting stop loss to: $${roundedSlPrice.toFixed(2)}`
+      );
+      
+      // Use provided quantity or get from balance
+      if (quantity) {
+        return await BinanceApiService.setStopLossWithQuantity(PAIR, roundedSlPrice, quantity);
+      } else {
+        return BinanceApiService.setStopLoss(PAIR, roundedSlPrice);
+      }
     } catch (error: any) {
-      LogService.log(error.message + `no open orders`);
-    }
-    try {
-      LogService.log(`Adjusting stop loss to: ${slPrice}`);
-      return BinanceApiService.setStopLoss(PAIR, slPrice);
-    } catch (error: any) {
-      LogService.log(`Error executing trade: ${error.message}`);
+      const timeStr = new Date().toLocaleTimeString();
+      LogService.logError(
+        `[${timeStr}] ❌ Error adjusting stop loss: ${error.message || JSON.stringify(error)}`
+      );
     }
     return;
   }

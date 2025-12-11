@@ -20,6 +20,18 @@ export class MacdSMA implements TradingStrategy {
     riskRewardRatio: number;
     risking: number;
   } {
+    // Validate we have enough candles
+    if (candles.length < Math.max(LONG_MA, 26)) {
+      return {
+        label: "",
+        tp: 0,
+        sl: 0,
+        roi: 0,
+        riskRewardRatio: 0,
+        risking: 0,
+      };
+    }
+
     const currentCandle = candles.at(-1)!;
     const [macd, signal, hist] = ta.macd(
       candles.map((candle) => candle.close),
@@ -28,10 +40,35 @@ export class MacdSMA implements TradingStrategy {
       9
     );
 
+    // Validate MACD arrays
+    if (!macd || !signal || !hist || macd.length < 2 || signal.length < 2 || hist.length < 2) {
+      return {
+        label: "",
+        tp: 0,
+        sl: 0,
+        roi: 0,
+        riskRewardRatio: 0,
+        risking: 0,
+      };
+    }
+
     const emas = ta.ema(
       candles.map((candle) => candle.close),
       LONG_MA
     );
+
+    // Validate EMA array
+    if (!emas || emas.length === 0) {
+      return {
+        label: "",
+        tp: 0,
+        sl: 0,
+        roi: 0,
+        riskRewardRatio: 0,
+        risking: 0,
+      };
+    }
+
     const histColors = getMACDHistogramColorLabels(hist);
     const swingLow = Math.min(...candles.map((candle) => candle.low).slice(-5));
     const rsis = ta.rsi(
@@ -52,9 +89,7 @@ export class MacdSMA implements TradingStrategy {
       currentCandle.close < emas.at(-1)!
     ) {
       const riskRewardRatio = 2;
-      const risking = Math.min(
-        ((swingLow - candles!.at(-1)!.close) / candles!.at(-1)!.close) * 100
-      );
+      const risking = ((swingLow - candles!.at(-1)!.close) / candles!.at(-1)!.close) * 100;
       let sl = swingLow;
       const roi = Math.max(TARGET_ROI, (risking * -riskRewardRatio) / 100 + 1);
       const tp = candles!.at(-1)!.close * roi;

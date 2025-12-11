@@ -41,6 +41,11 @@ export function delay(ms: number): Promise<void> {
 }
 
 export function getMACDHistogramColorLabels(hist: number[]): string[] {
+  // Validate input - need at least 2 elements
+  if (!hist || hist.length < 2) {
+    return [];
+  }
+  
   // Pre-allocate array with known size for better memory efficiency
   const labels: string[] = new Array(hist.length - 1);
 

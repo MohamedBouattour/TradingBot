@@ -6,6 +6,7 @@ import { AppService } from "./app.service";
 import { PortfolioModule } from "./portfolio/portfolio.module";
 import { TradingModule } from "./trading/trading.module";
 import { LogsModule } from "./logs/logs.module";
+import { BotControlModule } from "./bot-control/bot-control.module";
 import { PortfolioItemEntity } from "./entities/portfolio-item.entity";
 import { TradingDecisionEntity } from "./entities/trading-decision.entity";
 import { ROIDataEntity } from "./entities/roi-data.entity";
@@ -40,6 +41,7 @@ import { RebalanceResultEntity } from "./entities/rebalance-result.entity";
     PortfolioModule,
     TradingModule,
     LogsModule,
+    BotControlModule,
   ],
   controllers: [AppController],
   providers: [AppService],

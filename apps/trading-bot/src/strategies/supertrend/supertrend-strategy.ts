@@ -16,17 +16,54 @@ export class SuperTrendStrategy implements TradingStrategy {
     riskRewardRatio: number;
     risking: number;
   } {
+    // Validate we have enough candles (need at least 20 for SuperTrend)
+    if (candles.length < 20) {
+      return {
+        label: "",
+        tp: 0,
+        sl: 0,
+        roi: 0,
+        riskRewardRatio: 0,
+        risking: 0,
+      };
+    }
+
     const superTrends = supertrend({
       initialArray: candles,
-      multiplier: 9,
+      multiplier: 3,
       period: 10,
     });
+
+    // Validate supertrend array
+    if (!superTrends || superTrends.length < 2) {
+      return {
+        label: "",
+        tp: 0,
+        sl: 0,
+        roi: 0,
+        riskRewardRatio: 0,
+        risking: 0,
+      };
+    }
 
     const lastCandle = candles.at(-1)!;
     const previousCandle = candles.at(-2)!;
 
     const lastSuperTrend = superTrends.at(-1)!;
     const previousSuperTrend = superTrends.at(-2)!;
+
+    // Validate supertrend values are numbers
+    if (typeof lastSuperTrend !== 'number' || typeof previousSuperTrend !== 'number' || 
+        isNaN(lastSuperTrend) || isNaN(previousSuperTrend)) {
+      return {
+        label: "",
+        tp: 0,
+        sl: 0,
+        roi: 0,
+        riskRewardRatio: 0,
+        risking: 0,
+      };
+    }
 
     const resistanceLevels = this.getRecentResistanceLevels(candles);
     const isNearResistance = this.isTooCloseToResistance(
@@ -92,8 +129,12 @@ export class SuperTrendStrategy implements TradingStrategy {
         resistanceLevels.push(candle.high);
       }
     }
+    const recentLevels = resistanceLevels.slice(-lookback);
+    if (recentLevels.length === 0) {
+      return 0; // No resistance levels found
+    }
     return (
-      resistanceLevels.slice(-lookback).reduce((a, b) => a + b, 0) / lookback
+      recentLevels.reduce((a, b) => a + b, 0) / recentLevels.length
     );
   }
 
