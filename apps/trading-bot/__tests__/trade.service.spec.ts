@@ -56,9 +56,11 @@ describe("TradeService", () => {
 
       expect(result).toBeUndefined();
       expect(mockBinanceApiService.buyAndSetTPSL).not.toHaveBeenCalled();
-      expect(mockLogService.log).toHaveBeenCalledWith(
-        expect.stringContaining("Insufficient balance")
+      const logCalls = (mockLogService.log as jest.Mock).mock.calls;
+      const hasBalanceLog = logCalls.some((call: any[]) => 
+        call[0] && call[0].includes("Insufficient balance")
       );
+      expect(hasBalanceLog).toBe(true);
     });
 
     it("should return undefined if trade value is too small", async () => {
@@ -149,9 +151,11 @@ describe("TradeService", () => {
       const result = await TradeService.handleSell();
 
       expect(result).toBeUndefined();
-      expect(mockLogService.log).toHaveBeenCalledWith(
-        expect.stringContaining("Error executing trade")
+      const logCalls = (mockLogService.log as jest.Mock).mock.calls;
+      const hasErrorLog = logCalls.some((call: any[]) => 
+        call[0] && call[0].includes("Error executing trade")
       );
+      expect(hasErrorLog).toBe(true);
     });
 
     it("should handle cancel orders error gracefully", async () => {
@@ -277,9 +281,11 @@ describe("TradeService", () => {
 
       await TradeService.testOrders("BTCUSDT");
 
-      expect(mockLogService.log).toHaveBeenCalledWith(
-        expect.stringContaining("Test failed")
+      const logCalls = (mockLogService.log as jest.Mock).mock.calls;
+      const hasTestFailedLog = logCalls.some((call: any[]) => 
+        call[0] && call[0].includes("Test failed")
       );
+      expect(hasTestFailedLog).toBe(true);
     });
   });
 });

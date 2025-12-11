@@ -75,15 +75,15 @@ describe("LogService", () => {
     });
 
     it("should log to console in DEBUG mode", () => {
-      const originalEnv = process.env.MODE;
-      process.env.MODE = "DEBUG";
+      const originalEnv = process.env["MODE"];
+      process.env["MODE"] = "DEBUG";
       const consoleSpy = jest.spyOn(process.stdout, "write").mockImplementation();
 
       LogService.logStructured("INFO", "SYSTEM", "Debug message");
 
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();
-      process.env.MODE = originalEnv;
+      process.env["MODE"] = originalEnv;
     });
 
     it("should handle write errors gracefully", () => {
@@ -153,7 +153,7 @@ describe("LogService", () => {
 
       LogService.log("Test message");
 
-      expect(mockWriteStream.on).toHaveBeenCalledWith("error", expect.any(Function));
+      expect(mockWriteStream.on).toHaveBeenCalledWith("error", expect.any(Function) as any);
     });
   });
 
@@ -190,6 +190,64 @@ describe("LogService", () => {
       LogService.log(messageWithTimestamp);
       const call = mockWriteStream.write.mock.calls[0][0];
       expect(call).not.toContain("2024-01-01T12:00:00.000Z");
+    });
+
+    it("should preserve border formatting", () => {
+      const borderMessage = "═".repeat(80);
+      LogService.log(borderMessage);
+      const call = mockWriteStream.write.mock.calls[0][0];
+      expect(call).toContain("═".repeat(80));
+    });
+  });
+
+  describe("createBorder", () => {
+    it("should create a border with title", () => {
+      const border = LogService.createBorder("TEST TITLE", 80, "═");
+      expect(border).toContain("TEST TITLE");
+      expect(border).toContain("═");
+      expect(border.split("\n").length).toBe(3); // Top border, title line, bottom border
+    });
+
+    it("should create a border without title", () => {
+      const border = LogService.createBorder("", 80, "═");
+      const lines = border.split("\n");
+      expect(lines[0]).toBe("═".repeat(80));
+      expect(lines[1]).toBe("═".repeat(80));
+      expect(lines[2]).toBe("═".repeat(80));
+    });
+
+    it("should use custom width", () => {
+      const border = LogService.createBorder("TEST", 50, "═");
+      const lines = border.split("\n");
+      expect(lines[0].length).toBe(50);
+    });
+
+    it("should use custom character", () => {
+      const border = LogService.createBorder("TEST", 80, "-");
+      expect(border).toContain("-");
+      expect(border).not.toContain("═");
+    });
+  });
+
+  describe("createSeparator", () => {
+    it("should create a separator line", () => {
+      const separator = LogService.createSeparator("─", 80);
+      expect(separator).toBe("─".repeat(80));
+    });
+
+    it("should use default width", () => {
+      const separator = LogService.createSeparator();
+      expect(separator).toBe("─".repeat(80));
+    });
+
+    it("should use custom width", () => {
+      const separator = LogService.createSeparator("─", 50);
+      expect(separator).toBe("─".repeat(50));
+    });
+
+    it("should use custom character", () => {
+      const separator = LogService.createSeparator("=", 80);
+      expect(separator).toBe("=".repeat(80));
     });
   });
 

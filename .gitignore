@@ -5,5 +5,5 @@ dist
 .cahce
 .angular
 
-/coverage/**
+coverage/
 /deploy

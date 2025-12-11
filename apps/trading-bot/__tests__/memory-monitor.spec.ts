@@ -51,9 +51,11 @@ describe("MemoryMonitor", () => {
       // Advance timer by monitoring interval (60 minutes = 3600000ms)
       jest.advanceTimersByTime(3600000);
 
-      expect(mockLogService.log).toHaveBeenCalledWith(
-        expect.stringContaining("Memory Usage")
+      const logCalls = (mockLogService.log as jest.Mock).mock.calls;
+      const hasMemoryLog = logCalls.some((call: any[]) => 
+        call[0] && call[0].includes("Memory Usage")
       );
+      expect(hasMemoryLog).toBe(true);
     });
   });
 
@@ -75,9 +77,11 @@ describe("MemoryMonitor", () => {
       memoryMonitor.startMonitoring();
       jest.advanceTimersByTime(3600000);
 
-      expect(mockLogService.log).toHaveBeenCalledWith(
-        expect.stringContaining("Memory Usage")
+      const logCalls = (mockLogService.log as jest.Mock).mock.calls;
+      const hasMemoryLog = logCalls.some((call: any[]) => 
+        call[0] && call[0].includes("Memory Usage")
       );
+      expect(hasMemoryLog).toBe(true);
     });
 
     it("should log warning when memory exceeds threshold", () => {
@@ -94,9 +98,11 @@ describe("MemoryMonitor", () => {
       memoryMonitor.startMonitoring();
       jest.advanceTimersByTime(3600000);
 
-      expect(mockLogService.log).toHaveBeenCalledWith(
-        expect.stringContaining("WARNING: Memory usage is high")
+      const logCalls = (mockLogService.log as jest.Mock).mock.calls;
+      const hasWarningLog = logCalls.some((call: any[]) => 
+        call[0] && call[0].includes("WARNING: Memory usage is high")
       );
+      expect(hasWarningLog).toBe(true);
 
       process.memoryUsage = originalMemoryUsage;
     });
@@ -115,9 +121,11 @@ describe("MemoryMonitor", () => {
       memoryMonitor.startMonitoring();
       jest.advanceTimersByTime(3600000);
 
-      expect(mockLogService.log).toHaveBeenCalledWith(
-        expect.stringContaining("CRITICAL: Memory usage is very high")
+      const logCalls = (mockLogService.log as jest.Mock).mock.calls;
+      const hasCriticalLog = logCalls.some((call: any[]) => 
+        call[0] && call[0].includes("CRITICAL: Memory usage is very high")
       );
+      expect(hasCriticalLog).toBe(true);
 
       process.memoryUsage = originalMemoryUsage;
     });

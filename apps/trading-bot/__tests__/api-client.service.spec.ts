@@ -12,11 +12,11 @@ const mockLogService = LogService as jest.Mocked<typeof LogService>;
 describe("ApiClientService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    process.env.BOT_API_URL = undefined;
+    process.env["BOT_API_URL"] = undefined;
   });
 
   afterEach(() => {
-    delete process.env.BOT_API_URL;
+    delete process.env["BOT_API_URL"];
   });
 
   describe("sendTradingDecision", () => {
@@ -36,13 +36,12 @@ describe("ApiClientService", () => {
       });
 
       expect(result).toBe(true);
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/trading/decisions"),
-        expect.objectContaining({
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        })
-      );
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      expect(fetchCall[0]).toContain("/trading/decisions");
+      expect(fetchCall[1]).toMatchObject({
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
     });
 
     it("should return false on failure", async () => {
@@ -99,10 +98,9 @@ describe("ApiClientService", () => {
       });
 
       expect(result).toBe(true);
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/trading/roi"),
-        expect.objectContaining({ method: "POST" })
-      );
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      expect(fetchCall[0]).toContain("/trading/roi");
+      expect(fetchCall[1]).toMatchObject({ method: "POST" });
     });
   });
 
@@ -127,10 +125,9 @@ describe("ApiClientService", () => {
       });
 
       expect(result).toBe(true);
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/trading/rebalance"),
-        expect.objectContaining({ method: "POST" })
-      );
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      expect(fetchCall[0]).toContain("/trading/rebalance");
+      expect(fetchCall[1]).toMatchObject({ method: "POST" });
     });
   });
 
@@ -144,10 +141,9 @@ describe("ApiClientService", () => {
       const result = await ApiClientService.updatePortfolioValue("BTC", 5000);
 
       expect(result).toBe(true);
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/portfolio/BTC/value"),
-        expect.objectContaining({ method: "PUT" })
-      );
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      expect(fetchCall[0]).toContain("/portfolio/BTC/value");
+      expect(fetchCall[1]).toMatchObject({ method: "PUT" });
     });
   });
 
@@ -162,10 +158,9 @@ describe("ApiClientService", () => {
       const result = await ApiClientService.getPortfolioStats();
 
       expect(result).toEqual(mockStats);
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/portfolio/stats"),
-        expect.objectContaining({ method: "GET" })
-      );
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      expect(fetchCall[0]).toContain("/portfolio/stats");
+      expect(fetchCall[1]).toMatchObject({ method: "GET" });
     });
 
     it("should return null on failure", async () => {
@@ -187,10 +182,9 @@ describe("ApiClientService", () => {
       const result = await ApiClientService.checkHealth();
 
       expect(result).toBe(true);
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/trading/health"),
-        expect.objectContaining({ method: "GET" })
-      );
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      expect(fetchCall[0]).toContain("/trading/health");
+      expect(fetchCall[1]).toMatchObject({ method: "GET" });
     });
   });
 
@@ -250,10 +244,9 @@ describe("ApiClientService", () => {
       });
 
       expect(result).toBe(true);
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/portfolio/sync"),
-        expect.objectContaining({ method: "POST" })
-      );
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      expect(fetchCall[0]).toContain("/portfolio/sync");
+      expect(fetchCall[1]).toMatchObject({ method: "POST" });
     });
   });
 
@@ -304,10 +297,9 @@ describe("ApiClientService", () => {
       await ApiClientService.checkHealth();
 
       // Should use default localhost URL
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/trading/health"),
-        expect.any(Object)
-      );
+      const fetchCall = (global.fetch as jest.Mock).mock.calls[0];
+      expect(fetchCall[0]).toContain("/trading/health");
+      expect(fetchCall[1]).toBeDefined();
     });
   });
 });

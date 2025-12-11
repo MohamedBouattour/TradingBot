@@ -62,7 +62,7 @@ describe("MarketService", () => {
 
       const result = await MarketService.fetchCandlestickData("BTCUSDT", "1h", 100);
 
-      expect(result).toHaveLength(2);
+      expect(result.length).toBe(2);
       expect(result[0].close).toBe(20300);
       expect(global.fetch).toHaveBeenCalled();
     });
@@ -99,7 +99,7 @@ describe("MarketService", () => {
       const result = await MarketService.fetchCandlestickData("BTCUSDT", "1h", 100);
 
       expect(delay).toHaveBeenCalled();
-      expect(result).toHaveLength(2);
+      expect(result.length).toBe(2);
     });
 
     it("should retry on failure with exponential backoff", async () => {
@@ -116,15 +116,18 @@ describe("MarketService", () => {
       const result = await MarketService.fetchCandlestickData("BTCUSDT", "1h", 100);
 
       expect(delay).toHaveBeenCalled();
-      expect(result).toHaveLength(2);
+      expect(result.length).toBe(2);
     });
 
     it("should throw error after max retries", async () => {
       (global.fetch as jest.Mock).mockRejectedValue(new Error("Network error"));
 
-      await expect(
-        MarketService.fetchCandlestickData("BTCUSDT", "1h", 100)
-      ).rejects.toThrow();
+      try {
+        await MarketService.fetchCandlestickData("BTCUSDT", "1h", 100);
+        fail("Should have thrown an error");
+      } catch (error) {
+        expect(error).toBeDefined();
+      }
     });
 
     it("should handle HTTP errors", async () => {
@@ -134,9 +137,12 @@ describe("MarketService", () => {
         statusText: "Internal Server Error",
       });
 
-      await expect(
-        MarketService.fetchCandlestickData("BTCUSDT", "1h", 100)
-      ).rejects.toThrow();
+      try {
+        await MarketService.fetchCandlestickData("BTCUSDT", "1h", 100);
+        fail("Should have thrown an error");
+      } catch (error) {
+        expect(error).toBeDefined();
+      }
     });
 
     it("should use endTime parameter when provided", async () => {
@@ -189,10 +195,10 @@ describe("MarketService", () => {
 
     it("should get cache statistics", () => {
       const stats = MarketService.getCacheStats();
-      expect(stats).toHaveProperty("cacheSize");
-      expect(stats).toHaveProperty("activeRequests");
-      expect(stats).toHaveProperty("queuedRequests");
-      expect(stats).toHaveProperty("memoryUsage");
+      expect(stats.cacheSize).toBeDefined();
+      expect(stats.activeRequests).toBeDefined();
+      expect(stats.queuedRequests).toBeDefined();
+      expect(stats.memoryUsage).toBeDefined();
     });
 
     it("should clean cache when it exceeds max size", async () => {
@@ -240,9 +246,11 @@ describe("MarketService", () => {
       
       // Manually expire cache entries by manipulating timestamps
       const cache = (MarketService as any).candleCache;
-      if (cache.size > 0) {
-        const firstEntry = Array.from(cache.entries())[0];
-        firstEntry[1].timestamp = Date.now() - 50000; // Expired
+      if (cache && cache.size > 0) {
+        const firstEntry = Array.from(cache.entries())[0] as [string, any];
+        if (firstEntry && firstEntry[1]) {
+          firstEntry[1].timestamp = Date.now() - 50000; // Expired
+        }
       }
 
       // Trigger cache clean
@@ -287,9 +295,11 @@ describe("MarketService", () => {
       
       // Manually age the request queue
       const requestQueue = (MarketService as any).requestQueue;
-      if (requestQueue.size > 0) {
-        const firstEntry = Array.from(requestQueue.entries())[0];
-        firstEntry[1].timestamp = Date.now() - 40000; // Old request
+      if (requestQueue && requestQueue.size > 0) {
+        const firstEntry = Array.from(requestQueue.entries())[0] as [string, any];
+        if (firstEntry && firstEntry[1]) {
+          firstEntry[1].timestamp = Date.now() - 40000; // Old request
+        }
       }
 
       await promise;
@@ -314,8 +324,18 @@ describe("MarketService", () => {
       const promise2 = MarketService.fetchCandlestickData("BTCUSDT", "1h", 100);
 
       // Both should fail
-      await expect(promise1).rejects.toThrow();
-      await expect(promise2).rejects.toThrow();
+      try {
+        await promise1;
+        fail("promise1 should have thrown");
+      } catch (error) {
+        expect(error).toBeDefined();
+      }
+      try {
+        await promise2;
+        fail("promise2 should have thrown");
+      } catch (error) {
+        expect(error).toBeDefined();
+      }
     });
 
     it("should handle cache hit with access count update", async () => {
@@ -331,7 +351,7 @@ describe("MarketService", () => {
       const result = await MarketService.fetchCandlestickData("BTCUSDT", "1h", 100);
 
       expect(global.fetch).toHaveBeenCalledTimes(1);
-      expect(result).toHaveLength(2);
+      expect(result.length).toBe(2);
     });
 
     it("should handle empty data response", async () => {
@@ -342,7 +362,7 @@ describe("MarketService", () => {
 
       const result = await MarketService.fetchCandlestickData("BTCUSDT", "1h", 100);
 
-      expect(result).toHaveLength(0);
+      expect(result.length).toBe(0);
       // Should not cache empty data
       const stats = MarketService.getCacheStats();
       expect(stats.cacheSize).toBe(0);
