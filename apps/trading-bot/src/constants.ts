@@ -65,7 +65,7 @@ export const PAIR = ASSET + BASE_CURRENCY;
 // Trading parameters
 export const AMOUNT_PRECISION = 4;
 export const PRICE_PRECISION = 2;
-export const BALANCE_POSTIOTION_RATIO = 0.25;
+export const BALANCE_POSTIOTION_RATIO = 0.33;
 export const TARGET_ROI = 1.012;
 export const INITIAL_BALANCE = 1042;
 

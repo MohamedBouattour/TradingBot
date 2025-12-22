@@ -620,6 +620,20 @@ async function main() {
     LogService.log(`   • Timeframe: ${TIME_FRAME}`);
     LogService.log(``);
 
+    // Check candle alignment
+    const currentCandle = candlesticks[candlesticks.length - 1];
+    if (currentCandle) {
+      const openTime = new Date(currentCandle.time).getTime();
+      const timeframeMs = interval.getValueInMs();
+      const elapsedTime = Date.now() - openTime;
+      
+      if (elapsedTime > timeframeMs * 0.5) {
+        const percentComplete = (elapsedTime / timeframeMs * 100).toFixed(1);
+        LogService.log(`⚠️  WARNING: Job alignment issue! Current candle is ${percentComplete}% complete.`);
+        LogService.log(`   • Please adjust cron schedule +1h`);
+      }
+    }
+
     // Always execute strategy to detect and log signals (even if we have a position)
     // This ensures we don't miss signals and can track market conditions
     await runTradingBot(candlesticks.slice(0, -1), !hasExistingPosition);
