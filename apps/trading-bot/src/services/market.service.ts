@@ -238,7 +238,10 @@ export class MarketService {
   public static clearCache() {
     this.candleCache.clear();
     this.requestQueue.clear();
-    console.log('MarketService cache cleared');
+    // Suppress log during tests to reduce memory usage
+    if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+      console.log('MarketService cache cleared');
+    }
   }
 
   // Get cache statistics for monitoring

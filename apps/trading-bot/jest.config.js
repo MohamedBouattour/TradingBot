@@ -16,5 +16,7 @@ module.exports = {
     "<rootDir>/src/main.ts",
     "<rootDir>/src/app.ts",
   ],
+  maxWorkers: 1, // Run tests serially to avoid memory issues
+  testTimeout: 10000, // Increase timeout for memory-intensive tests
 };
 

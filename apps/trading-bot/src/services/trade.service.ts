@@ -198,7 +198,7 @@ export class TradeService {
       if (quantity) {
         return await BinanceApiService.setStopLossWithQuantity(PAIR, roundedSlPrice, quantity);
       } else {
-        return BinanceApiService.setStopLoss(PAIR, roundedSlPrice);
+        return await BinanceApiService.setStopLoss(PAIR, roundedSlPrice);
       }
     } catch (error: any) {
       const timeStr = new Date().toLocaleTimeString();

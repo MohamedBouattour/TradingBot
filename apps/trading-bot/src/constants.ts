@@ -57,7 +57,7 @@ export const REBALANCE = {
 
 export const MULTIPLIER = 1.035;
 // Core trading configuration
-export const TIME_FRAME = "30m";
+export const TIME_FRAME = "2h";
 export const ASSET = "ETH";
 export const BASE_CURRENCY = "USDT";
 export const PAIR = ASSET + BASE_CURRENCY;

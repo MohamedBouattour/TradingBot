@@ -709,4 +709,7 @@ process.on("SIGTERM", () => {
   process.exit(0);
 });
 
-main();
+// Only run main() if not in test environment
+if (process.env.NODE_ENV !== "test" && !process.env.JEST_WORKER_ID) {
+  main();
+}

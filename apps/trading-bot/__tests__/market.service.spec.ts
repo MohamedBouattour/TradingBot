@@ -260,7 +260,7 @@ describe("MarketService", () => {
       expect(stats.cacheSize).toBeLessThanOrEqual(5);
     });
 
-    it("should perform aggressive cache clean on high memory", (done) => {
+    it("should perform aggressive cache clean on high memory", () => {
       const originalMemoryUsage = process.memoryUsage;
       process.memoryUsage = jest.fn(() => ({
         heapUsed: 200 * 1024 * 1024, // 200MB > 150MB threshold
@@ -274,14 +274,17 @@ describe("MarketService", () => {
 
       MarketService.initialize();
       
-      // Wait a bit for memory check
-      setTimeout(() => {
-        expect(consoleWarnSpy).toHaveBeenCalled();
-        consoleWarnSpy.mockRestore();
-        process.memoryUsage = originalMemoryUsage;
-        MarketService.cleanup();
-        done();
-      }, 200);
+      // Manually trigger memory check instead of waiting for interval
+      (MarketService as any).performMemoryCheck();
+      
+      expect(consoleWarnSpy).toHaveBeenCalled();
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining("High memory usage detected")
+      );
+      
+      consoleWarnSpy.mockRestore();
+      process.memoryUsage = originalMemoryUsage;
+      MarketService.cleanup();
     });
 
     it("should clean request queue of old requests", async () => {
