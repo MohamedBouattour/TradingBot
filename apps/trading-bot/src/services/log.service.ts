@@ -11,37 +11,8 @@ export class LogService {
   private static readonly LOG_FILE = "./output.log";
   private static readonly MAX_LOG_SIZE = 100 * 1024 * 1024; // 100MB max file size
   private static currentLogSize = 0;
-  private static initialized = false; // 🔥 ADD THIS FLAG
-
-  // 🔥 ADD THIS CLEANUP METHOD
-  private static initializeLogService(): void {
-    if (this.initialized) return;
-
-    try {
-      const logFiles = ["./output.log", "./output.log.1"];
-
-      // Delete existing log files
-      for (const logFile of logFiles) {
-        if (fs.existsSync(logFile)) {
-          fs.unlinkSync(logFile);
-          console.log(`Deleted existing log file: ${logFile}`);
-        }
-      }
-
-      // Create new empty output.log file
-      fs.writeFileSync("./output.log", "");
-      console.log("Created new empty output.log file");
-
-      this.initialized = true;
-    } catch (error: any) {
-      console.error("Error cleaning up log files:", error.message);
-      this.initialized = true; // Set to true even if cleanup fails
-    }
-  }
-
   private static getLogStream(): fs.WriteStream {
-    // 🔥 ADD THIS LINE - Initialize on first use
-    //this.initializeLogService();
+
 
     if (!this.logStream || this.logStream.destroyed) {
       // Check if log file exists and get its size
@@ -113,19 +84,19 @@ export class LogService {
     // Extract time from ISO timestamp for cleaner format
     const date = new Date(entry.timestamp);
     const timeStr = date.toLocaleTimeString('en-US', { hour12: false });
-    
+
     // Clean message (remove duplicate timestamps if any)
     let cleanMessage = entry.message;
-    
+
     // Remove ISO timestamp patterns from message if present
     cleanMessage = cleanMessage.replace(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z\s*/g, '');
-    
+
     // Format with better readability
     // If message already contains borders or special formatting, keep it as is
     if (cleanMessage.includes('═') || cleanMessage.includes('─')) {
       return `${cleanMessage}\n`;
     }
-    
+
     // Format: [HH:MM:SS] Message
     return `[${timeStr}] ${cleanMessage}\n`;
   }
@@ -184,9 +155,7 @@ export class LogService {
     this.logStructured("INFO", "REBALANCE", message, data);
   }
 
-  public static logMemoryStats(message: string, data?: any) {
-    this.logStructured("INFO", "MEMORY", message, data);
-  }
+
 
   public static logError(message: string, data?: any) {
     this.logStructured("ERROR", "SYSTEM", message, data);

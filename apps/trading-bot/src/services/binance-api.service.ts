@@ -39,12 +39,7 @@ export class BinanceApiService {
     keepAlive: true,
   });
 
-  // Cache for market prices to reduce API calls
-  private static priceCache = new Map<
-    string,
-    { price: number; timestamp: number }
-  >();
-  private static readonly PRICE_CACHE_TTL = 5000; // 5 seconds cache for prices
+
 
   /**
    * Get account balance for all assets
@@ -140,13 +135,12 @@ export class BinanceApiService {
    * @param asset The trading pair symbol (e.g. 'BTCUSDT')
    * @returns Promise containing the current price as a string
    */
+  /**
+   * Get current market price for an asset
+   * @param asset The trading pair symbol (e.g. 'BTCUSDT')
+   * @returns Promise containing the current price as a string
+   */
   public static async getMarketPrice(symbol: string): Promise<number> {
-    // Check cache first
-    const cached = this.priceCache.get(symbol);
-    if (cached && Date.now() - cached.timestamp < this.PRICE_CACHE_TTL) {
-      return cached.price;
-    }
-
     try {
       const prices = await BinanceApiService.binance.prices();
       const price = prices[symbol];
@@ -157,32 +151,11 @@ export class BinanceApiService {
       const numericPrice =
         typeof price === "string" ? parseFloat(price) : price;
 
-      // Cache the price
-      this.priceCache.set(symbol, {
-        price: numericPrice,
-        timestamp: Date.now(),
-      });
-
-      // Clean cache periodically
-      if (Math.random() < 0.1) {
-        // 10% chance
-        this.cleanPriceCache();
-      }
-
       return numericPrice;
     } catch (error: any) {
       throw new Error(
         `Failed to get market price for ${symbol}: ${error.message}`
       );
-    }
-  }
-
-  private static cleanPriceCache() {
-    const now = Date.now();
-    for (const [symbol, data] of this.priceCache.entries()) {
-      if (now - data.timestamp > this.PRICE_CACHE_TTL * 2) {
-        this.priceCache.delete(symbol);
-      }
     }
   }
 
@@ -234,7 +207,7 @@ export class BinanceApiService {
           tpPrice
         );
       }
-      
+
       // Set Stop Loss order (STOP_LOSS SELL)
       if (slPrice) {
         const roundedSlPrice = Math.round(slPrice * 100) / 100; // Round to 2 decimals
@@ -387,7 +360,7 @@ export class BinanceApiService {
 
       LogService.logRebalance(
         `${portfolioItem.asset}: $${assetValue.toFixed(2)} / $${portfolioItem.value.toFixed(2)} ` +
-          `(${result.deviation.toFixed(1)}%) ~= ${(assetValue - portfolioItem.value).toFixed(2)}$`
+        `(${result.deviation.toFixed(1)}%) ~= ${(assetValue - portfolioItem.value).toFixed(2)}$`
       );
 
       // Skip if balance too small
