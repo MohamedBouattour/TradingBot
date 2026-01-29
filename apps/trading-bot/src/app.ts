@@ -13,13 +13,13 @@ import { BinanceApiService } from "./services/binance-api.service";
 import { LogService } from "./services/log.service";
 import { MarketService } from "./services/market.service";
 import { TradeService } from "./services/trade.service";
-import { BtcSpotStrategy } from "./strategies/btc-spot/btc-spot-strategy";
+import { TrendlineBreakoutStrategy } from "./strategies/trendline-breakout/trendline-breakout-strategy";
 import { StrategyManager } from "./strategies/strategy-manager";
 
 config();
 
 const interval = new TickInterval(Interval[TIME_FRAME]);
-const strategyManager = new StrategyManager(new BtcSpotStrategy());
+const strategyManager = new StrategyManager(new TrendlineBreakoutStrategy());
 
 // Position tracking
 interface Position {
@@ -93,25 +93,25 @@ async function runTradingBot(candlesticks: Candle[], allowBuy: boolean = true) {
         );
 
         try {
-          // Execute buy order
-          const order = await TradeService.handleBuy(tp, sl);
-          
+          // Execute buy order (Disable SL order creation by passing 0)
+          const order = await TradeService.handleBuy(tp, 0);
+
           if (order && order.status === "FILLED") {
             // Get actual executed quantity from order
             let executedQty = 0;
             if (order.executedQty) {
-              executedQty = typeof order.executedQty === 'string' 
-                ? parseFloat(order.executedQty) 
+              executedQty = typeof order.executedQty === 'string'
+                ? parseFloat(order.executedQty)
                 : order.executedQty;
             }
-            
+
             // If order doesn't have executedQty, get from balance
             if (!executedQty || isNaN(executedQty)) {
               const balance = await BinanceApiService.getBalance();
               const assetBalance = balance[ASSET];
               executedQty = parseFloat(assetBalance.available || "0") + parseFloat(assetBalance.locked || "0");
             }
-            
+
             // Get executed price from fills array (for market orders) or price field
             let executedPrice = currentPrice;
             if (order.fills && order.fills.length > 0) {
@@ -119,7 +119,7 @@ async function runTradingBot(candlesticks: Candle[], allowBuy: boolean = true) {
             } else if (order.price) {
               executedPrice = parseFloat(order.price);
             }
-            
+
             // Store position info
             currentPosition = {
               entryPrice: executedPrice,
@@ -168,15 +168,15 @@ async function checkAndAdjustStopLoss() {
 
   try {
     const timeStr = new Date().toLocaleTimeString();
-    
+
     // Get current market price
     const marketPrice = await BinanceApiService.getMarketPrice(PAIR);
-    
+
     // Check if we still have the position (verify balance)
     const balance = await BinanceApiService.getBalance();
     const assetBalance = balance[ASSET];
     const currentQuantity = parseFloat(assetBalance.available) + parseFloat(assetBalance.locked);
-    
+
     // If no position, clear tracking
     if (currentQuantity <= 0) {
       LogService.log(
@@ -200,71 +200,29 @@ async function checkAndAdjustStopLoss() {
     // Calculate current P&L
     const currentPnL = ((marketPrice - currentPosition.entryPrice) / currentPosition.entryPrice) * 100;
     const pnlSign = currentPnL >= 0 ? "+" : "";
-    
-    // Check if we have SL order
+
+    // LOGGING ONLY - NO SL ADJUSTMENT (Strategy: Wait for TP)
     const openOrders = await BinanceApiService.getOpenOrders(PAIR);
-    const hasSL = openOrders.some((order: any) => 
+
+    // Check available orders
+    const hasSL = openOrders.some((order: any) =>
       order.type === "STOP_LOSS" || order.type === "STOP_LOSS_LIMIT"
     );
-    
-    // Only set SL if P&L > 1% and no SL order exists
-    if (currentPnL > 1.0 && !hasSL) {
-      const slPrice = Math.round((marketPrice * 0.99) * 100) / 100; // 1% below current price
-      try {
-        await BinanceApiService.setStopLossWithQuantity(PAIR, slPrice, currentQuantity);
-        LogService.log(
-          `[${timeStr}] ✅ SL order created | Price: $${slPrice.toFixed(2)} | P&L: +${currentPnL.toFixed(2)}%`
-        );
-        currentPosition.stopLoss = slPrice;
-      } catch (error: any) {
-        LogService.logError(
-          `[${timeStr}] ❌ Failed to create SL order: ${error.message || JSON.stringify(error)}`
-        );
-      }
-    }
-    
-    // If SL exists and P&L > 1%, check if we need to adjust it (trailing stop)
-    if (hasSL && currentPnL > 1.0) {
-      const slDifference = Math.abs((marketPrice - currentPosition.stopLoss) / marketPrice);
-      
-      // If difference > 1%, adjust stop loss
-      if (slDifference > STOP_LOSS_THRESHOLD) {
-        const newStopLoss = marketPrice * (1 - STOP_LOSS_THRESHOLD);
-        
-        // Only adjust if new SL is higher than current SL (trailing stop)
-        if (newStopLoss > currentPosition.stopLoss) {
-          const slIncrease = ((newStopLoss - currentPosition.stopLoss) / currentPosition.stopLoss) * 100;
-          
-          LogService.log(
-            `[${timeStr}] 📈 TRAILING SL ADJUST | Market: $${marketPrice.toFixed(2)} | Old SL: $${currentPosition.stopLoss.toFixed(2)} → New SL: $${newStopLoss.toFixed(2)} (+${slIncrease.toFixed(2)}%) | P&L: ${pnlSign}${currentPnL.toFixed(2)}%`
-          );
+    const hasTP = openOrders.some((order: any) => order.type === "LIMIT" && order.side === "SELL");
 
-          const roundedSl = Math.round(newStopLoss * 100) / 100;
-          await TradeService.adjustStopLoss(roundedSl, currentQuantity, currentPosition.targetPrice);
-          currentPosition.stopLoss = newStopLoss;
-        }
-      } else {
-        // Log position status (every 15 min check)
-        LogService.log(
-          `[${timeStr}] 👁️  POSITION MONITOR | Price: $${marketPrice.toFixed(2)} | SL: $${currentPosition.stopLoss.toFixed(2)} | TP: $${currentPosition.targetPrice.toFixed(2)} | P&L: ${pnlSign}${currentPnL.toFixed(2)}%`
-        );
-      }
-    } else if (!hasSL) {
-      // Log position status without SL
-      LogService.log(
-        `[${timeStr}] 👁️  POSITION MONITOR | Price: $${marketPrice.toFixed(2)} | TP: $${currentPosition.targetPrice.toFixed(2)} | P&L: ${pnlSign}${currentPnL.toFixed(2)}% | SL: Not set (waiting for >1% profit)`
-      );
-    }
+    LogService.log(
+      `[${timeStr}] 👁️  POSITION MONITOR | Price: $${marketPrice.toFixed(2)} | TP: $${currentPosition.targetPrice.toFixed(2)} (${hasTP ? 'Active' : 'Missing'}) | P&L: ${pnlSign}${currentPnL.toFixed(2)}% | SL: ${hasSL ? 'Active' : 'Disabled'}`
+    );
 
     // Check if stop loss was hit (market price <= stop loss)
     if (marketPrice <= currentPosition.stopLoss) {
       const finalPnL = ((marketPrice - currentPosition.entryPrice) / currentPosition.entryPrice) * 100;
       const holdingTime = Math.round((Date.now() - currentPosition.entryTime.getTime()) / (1000 * 60));
-      
+
       LogService.log(
         `[${timeStr}] 🔴 STOP LOSS HIT | Entry: $${currentPosition.entryPrice.toFixed(2)} | Exit: $${marketPrice.toFixed(2)} | SL: $${currentPosition.stopLoss.toFixed(2)} | P&L: ${finalPnL >= 0 ? "+" : ""}${finalPnL.toFixed(2)}% | Holding: ${holdingTime}min`
       );
-      
+
       // Position will be closed by stop loss order, clear tracking
       currentPosition = null;
     }
@@ -273,11 +231,11 @@ async function checkAndAdjustStopLoss() {
     if (currentPosition && marketPrice >= currentPosition.targetPrice) {
       const finalPnL = ((marketPrice - currentPosition.entryPrice) / currentPosition.entryPrice) * 100;
       const holdingTime = Math.round((Date.now() - currentPosition.entryTime.getTime()) / (1000 * 60));
-      
+
       LogService.log(
         `[${timeStr}] 🎯 TARGET PRICE HIT | Entry: $${currentPosition.entryPrice.toFixed(2)} | Exit: $${marketPrice.toFixed(2)} | TP: $${currentPosition.targetPrice.toFixed(2)} | P&L: +${finalPnL.toFixed(2)}% | Holding: ${holdingTime}min`
       );
-      
+
       // Position will be closed by take profit order, clear tracking
       currentPosition = null;
     }
@@ -292,29 +250,29 @@ async function checkAndAdjustStopLoss() {
 async function setupExistingPosition() {
   try {
     const timeStr = new Date().toLocaleTimeString();
-    
+
     // Check for existing orders first
     const openOrders = await BinanceApiService.getOpenOrders(PAIR);
     const hasTP = openOrders?.some((order: any) => order.type === "LIMIT" && order.side === "SELL");
-    const hasSL = openOrders?.some((order: any) => 
+    const hasSL = openOrders?.some((order: any) =>
       order.type === "STOP_LOSS" || order.type === "STOP_LOSS_LIMIT"
     );
-    
+
     // Check if we have existing balance
     let balance = await BinanceApiService.getBalance();
     let assetBalance = balance[ASSET];
     let availableQuantity = parseFloat(assetBalance.available || "0");
     let lockedQuantity = parseFloat(assetBalance.locked || "0");
     let totalQuantity = availableQuantity + lockedQuantity;
-    
+
     if (totalQuantity <= 0) {
       return false;
     }
-    
+
     // Get market price to calculate position value
     const marketPrice = await BinanceApiService.getMarketPrice(PAIR);
     const positionValue = totalQuantity * marketPrice;
-    
+
     // Check minimum notional value (Binance requires at least $5-10 for trades)
     // Treat balances below $5 as dust and ignore them
     const MIN_POSITION_VALUE = 5.0; // Minimum $5 position value
@@ -324,11 +282,11 @@ async function setupExistingPosition() {
       );
       return false;
     }
-    
+
     // Format quantity to match Binance LOT_SIZE requirements
     // Use 99% to account for trading fees (0.1% buy + 0.1% sell = 0.2%) and rounding
     const quantity = parseFloat((availableQuantity * 0.99).toFixed(AMOUNT_PRECISION));
-    
+
     // Check minimum quantity
     if (quantity < 0.00001) {
       LogService.log(
@@ -336,7 +294,7 @@ async function setupExistingPosition() {
       );
       return false;
     }
-    
+
     // Get entry price from trade history (needed for calculations)
     let entryPrice = marketPrice;
     try {
@@ -350,17 +308,17 @@ async function setupExistingPosition() {
     } catch (error: any) {
       // Use market price if can't get trade history
     }
-    
+
     // If both TP and SL exist, just track the position (don't cancel/recreate)
     if (hasTP && hasSL) {
       LogService.log(
         `[${timeStr}] ✅ Existing position with TP/SL orders | Quantity: ${totalQuantity.toFixed(AMOUNT_PRECISION)}`
       );
-      const slOrder = openOrders.find((order: any) => 
+      const slOrder = openOrders.find((order: any) =>
         order.type === "STOP_LOSS" || order.type === "STOP_LOSS_LIMIT"
       );
       const tpOrder = openOrders.find((order: any) => order.type === "LIMIT" && order.side === "SELL");
-      
+
       currentPosition = {
         entryPrice: entryPrice,
         stopLoss: parseFloat(slOrder?.stopPrice || slOrder?.price || (marketPrice * 0.99).toString()),
@@ -368,19 +326,19 @@ async function setupExistingPosition() {
         quantity: totalQuantity,
         entryTime: new Date(),
       };
-      
+
       // Check stop loss status during this run
       await checkAndAdjustStopLoss();
       return true;
     }
-    
+
     // If TP exists but no available quantity, don't cancel/recreate
     if (hasTP && availableQuantity <= 0) {
       LogService.log(
         `[${timeStr}] ✅ TP order already exists | No available quantity to trade | Quantity: ${totalQuantity.toFixed(AMOUNT_PRECISION)} (all locked)`
       );
       const tpOrder = openOrders.find((order: any) => order.type === "LIMIT" && order.side === "SELL");
-      
+
       currentPosition = {
         entryPrice: entryPrice,
         stopLoss: marketPrice * 0.99, // Default SL
@@ -388,12 +346,12 @@ async function setupExistingPosition() {
         quantity: totalQuantity,
         entryTime: new Date(),
       };
-      
+
       // Check stop loss status during this run
       await checkAndAdjustStopLoss();
       return true;
     }
-    
+
     // If position exists but orders are missing, create them
     // Only cancel orders if we need to create new ones and have available quantity
     if ((!hasTP || !hasSL) && availableQuantity > 0) {
@@ -405,7 +363,7 @@ async function setupExistingPosition() {
         await BinanceApiService.cancelAllOrders(PAIR);
         // Wait for balance to update
         await new Promise(resolve => setTimeout(resolve, 2000));
-        
+
         // Re-check balance after cancellation
         balance = await BinanceApiService.getBalance();
         assetBalance = balance[ASSET];
@@ -413,7 +371,7 @@ async function setupExistingPosition() {
         lockedQuantity = parseFloat(assetBalance.locked || "0");
         totalQuantity = availableQuantity + lockedQuantity;
       }
-      
+
       LogService.log(
         `[${timeStr}] ⚠️  Position exists but orders missing | TP: ${hasTP ? '✅' : '❌'} | SL: ${hasSL ? '✅' : '❌'} | Creating missing orders...`
       );
@@ -432,12 +390,12 @@ async function setupExistingPosition() {
       await checkAndAdjustStopLoss();
       return true;
     }
-    
+
     // Log balance details
     LogService.log(
       `[${timeStr}] 💰 Balance | Available: ${availableQuantity.toFixed(AMOUNT_PRECISION)} | Locked: ${lockedQuantity.toFixed(AMOUNT_PRECISION)} | Total: ${totalQuantity.toFixed(AMOUNT_PRECISION)}`
     );
-    
+
     // Entry price already retrieved above, log it
     if (entryPrice !== marketPrice) {
       LogService.log(
@@ -448,30 +406,30 @@ async function setupExistingPosition() {
         `[${timeStr}] ⚠️  Using current price as entry: $${entryPrice.toFixed(2)}`
       );
     }
-    
+
     // Calculate TP from entry price (2% above entry)
     const tpPrice = Math.round((entryPrice * 1.02) * 100) / 100;
     const currentPnL = ((marketPrice - entryPrice) / entryPrice) * 100;
-    
+
     // Create TP/SL orders
     LogService.log(
       `[${timeStr}] 📍 Setting up orders | Entry: $${entryPrice.toFixed(2)} | Current: $${marketPrice.toFixed(2)} | P&L: ${currentPnL >= 0 ? "+" : ""}${currentPnL.toFixed(2)}%`
     );
-    
+
     // Only create TP order if it doesn't exist and we have available quantity
     if (!hasTP && availableQuantity > 0) {
       // Re-check balance right before creating order to get most up-to-date amount
       const finalBalance = await BinanceApiService.getBalance();
       const finalAssetBalance = finalBalance[ASSET];
       const finalAvailable = parseFloat(finalAssetBalance.available || "0");
-      
+
       // Use 98.5% of available to account for fees (0.1% buy + 0.1% sell) and rounding overflow
       const tpQuantity = parseFloat((finalAvailable * 0.985).toFixed(AMOUNT_PRECISION));
-      
+
       LogService.log(
         `[${timeStr}] 🔧 Creating TP order | Price: $${tpPrice.toFixed(2)} | Available: ${finalAvailable.toFixed(AMOUNT_PRECISION)} | Using: ${tpQuantity.toFixed(AMOUNT_PRECISION)} (98.5% to account for fees)`
       );
-      
+
       if (tpQuantity < 0.00001) {
         LogService.logError(
           `[${timeStr}] ❌ Quantity too small for TP order | Available: ${finalAvailable.toFixed(AMOUNT_PRECISION)} | Calculated: ${tpQuantity.toFixed(AMOUNT_PRECISION)}`
@@ -524,7 +482,7 @@ async function setupExistingPosition() {
         `[${timeStr}] ⚠️  No available quantity for TP order | Available: ${availableQuantity.toFixed(AMOUNT_PRECISION)}`
       );
     }
-    
+
     // Only set SL if P&L > 1% (positive and profitable)
     if (currentPnL > 1.0) {
       const slPrice = Math.round((marketPrice * 0.99) * 100) / 100; // 1% below current price
@@ -538,7 +496,7 @@ async function setupExistingPosition() {
           `[${timeStr}] ❌ Failed to create SL order: ${error.message || JSON.stringify(error)}`
         );
       }
-      
+
       currentPosition = {
         entryPrice: entryPrice,
         stopLoss: slPrice,
@@ -550,7 +508,7 @@ async function setupExistingPosition() {
       LogService.log(
         `[${timeStr}] ⏸️  SL not set | P&L: ${currentPnL >= 0 ? "+" : ""}${currentPnL.toFixed(2)}% (waiting for >1% profit)`
       );
-      
+
       // Track position without SL order (will be set when P&L > 1%)
       currentPosition = {
         entryPrice: entryPrice,
@@ -560,7 +518,7 @@ async function setupExistingPosition() {
         entryTime: new Date(),
       };
     }
-    
+
     // Check stop loss status during this run
     await checkAndAdjustStopLoss();
     return true;
@@ -577,12 +535,12 @@ async function main() {
   const startTime = new Date();
   const startTimeStr = startTime.toLocaleString();
   const executionId = startTime.getTime().toString().slice(-6);
-  
+
   // Execution border - START
   LogService.log(`\n${LogService.createBorder("", 80, "═")}`);
   LogService.log(LogService.createBorder(`🚀 EXECUTION #${executionId} - STARTED`, 80, "═"));
   LogService.log(`${LogService.createBorder("", 80, "═")}\n`);
-  
+
   LogService.log(`📅 Date & Time: ${startTimeStr}`);
   LogService.log(`📋 Configuration:`);
   LogService.log(`   • Asset: ${ASSET}`);
@@ -595,7 +553,7 @@ async function main() {
   try {
     // Check for existing position first
     const hasExistingPosition = await setupExistingPosition();
-    
+
     if (hasExistingPosition) {
       LogService.log(`\n${LogService.createSeparator("─", 80)}`);
       LogService.log(`✅ Existing Position Detected`);
@@ -603,7 +561,7 @@ async function main() {
       LogService.log(`   • Position monitoring is enabled`);
       LogService.log(`${LogService.createSeparator("─", 80)}\n`);
     }
-    
+
     // Fetch 1h candlestick data
     LogService.log(`📊 Fetching market data...`);
     const candlesticks = await MarketService.fetchCandlestickData(
@@ -626,7 +584,7 @@ async function main() {
       const openTime = new Date(currentCandle.time).getTime();
       const timeframeMs = interval.getValueInMs();
       const elapsedTime = Date.now() - openTime;
-      
+
       if (elapsedTime > timeframeMs * 0.5) {
         const percentComplete = (elapsedTime / timeframeMs * 100).toFixed(1);
         LogService.log(`⚠️  WARNING: Job alignment issue! Current candle is ${percentComplete}% complete.`);
@@ -637,13 +595,13 @@ async function main() {
     // Always execute strategy to detect and log signals (even if we have a position)
     // This ensures we don't miss signals and can track market conditions
     await runTradingBot(candlesticks.slice(0, -1), !hasExistingPosition);
-    
+
     // If we have an existing position, show position details and check stop loss
     if (hasExistingPosition && currentPosition) {
       try {
         // Check stop loss status during this run
         await checkAndAdjustStopLoss();
-        
+
         const marketPrice = await BinanceApiService.getMarketPrice(PAIR);
         const currentPnL = ((marketPrice - currentPosition.entryPrice) / currentPosition.entryPrice) * 100;
         const pnlSign = currentPnL >= 0 ? "+" : "";
@@ -651,7 +609,7 @@ async function main() {
         const positionValue = currentPosition.quantity * marketPrice;
         const entryValue = currentPosition.quantity * currentPosition.entryPrice;
         const unrealizedPnL = positionValue - entryValue;
-        
+
         LogService.log(`\n${LogService.createSeparator("─", 80)}`);
         LogService.log(`📊 POSITION STATUS`);
         LogService.log(`${LogService.createSeparator("─", 80)}`);
@@ -674,7 +632,7 @@ async function main() {
     const endTimeStr = endTime.toLocaleTimeString();
     const duration = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
     const durationStr = duration < 60 ? `${duration}s` : `${Math.floor(duration / 60)}m ${duration % 60}s`;
-    
+
     // Execution border - END
     LogService.log(`\n${LogService.createSeparator("─", 80)}\n`);
     LogService.log(`✅ Execution Summary:`);
@@ -683,7 +641,7 @@ async function main() {
     LogService.log(`   • Duration: ${durationStr}`);
     LogService.log(`\n${LogService.createBorder(`✅ EXECUTION #${executionId} - COMPLETED`, 80, "═")}`);
     LogService.log(`${LogService.createBorder("", 80, "═")}\n`);
-    
+
     // Exit process after completion (bot runs as scheduled job)
     process.exit(0);
   } catch (error: any) {
@@ -691,7 +649,7 @@ async function main() {
     const errorTimeStr = errorTime.toLocaleTimeString();
     const duration = Math.round((errorTime.getTime() - startTime.getTime()) / 1000);
     const durationStr = duration < 60 ? `${duration}s` : `${Math.floor(duration / 60)}m ${duration % 60}s`;
-    
+
     // Execution border - ERROR
     LogService.logError(`\n${LogService.createSeparator("─", 80)}\n`);
     LogService.logError(`❌ Execution Summary:`);

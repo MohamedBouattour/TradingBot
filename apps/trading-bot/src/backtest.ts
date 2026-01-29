@@ -1,7 +1,5 @@
 import {
   ASSET,
-  MAX_TARGET_ROI,
-  MIN_TARGET_ROI,
   PAIR,
   PERIOD,
   TIME_FRAME,
@@ -13,25 +11,18 @@ import { Interval, TickInterval } from "./models/tick-interval.model";
 import { LogService } from "./services/log.service";
 import { MarketService } from "./services/market.service";
 import { StrategyManager } from "./strategies/strategy-manager";
+import { TrendlineBreakoutStrategy } from "./strategies/trendline-breakout/trendline-breakout-strategy";
 
-import { SuperTrendStrategy } from "./strategies/supertrend/supertrend-strategy";
-
-const strategyManager = new StrategyManager(new SuperTrendStrategy());
+// Configuration
+const strategyManager = new StrategyManager(new TrendlineBreakoutStrategy());
+const FEES = 0.36; // Fees in percent per trade (round trip or single side? Code implied total deduction)
+const INITIAL_CAPITAL = 850;
+const POSITION_SIZE_PERCENT = 1 / 3; // 33.33%
 
 let allData: Candle[] = [];
-let positions: any[] = [];
-let inPosition = false;
-let TARGET_ROI: number = 1.0;
-let stats: any[] = [];
-const FEES = 0.36;
 let period: number;
-
-let minRoi = MIN_TARGET_ROI;
-let maxRoi = MAX_TARGET_ROI;
-
-let step = 0.01;
-
 const interval = new TickInterval(Interval[TIME_FRAME]);
+
 async function prepareData(): Promise<Candle[]> {
   const oneMonthMs = PERIOD;
   const now = Date.now();
@@ -58,163 +49,168 @@ async function prepareData(): Promise<Candle[]> {
   return allData;
 }
 
-async function mainWithFixedRoi() {
+interface Position {
+  time: string;
+  entryPrice: number;
+  targetPrice: number;
+  investment: number;
+  amount: number;
+}
+
+interface TradeRecord {
+  entryTime: string;
+  exitTime: string;
+  status: string;
+  pnl: number;
+  entryPrice: number;
+  exitPrice: number;
+  duration: number;
+}
+
+async function main() {
   allData = await prepareData();
 
-  const rois = [];
+  console.log(`Starting Backtest with Capital: $${INITIAL_CAPITAL}`);
+  console.log(`Position Size: ${(POSITION_SIZE_PERCENT * 100).toFixed(2)}% of Equity`);
 
-  for (let roi = minRoi; roi <= maxRoi; roi += step) {
-    rois.push(parseFloat(roi.toFixed(4)));
-  }
-  rois.forEach((roi) => {
-    TARGET_ROI = roi;
-    positions = [];
-    inPosition = false;
-    const shortEma = 25;
-    const longEma = 200;
-    allData.forEach((_, index) => {
-      if (index > 500) {
-        const testedData = allData.slice(index - 500, index);
+  let balance = INITIAL_CAPITAL;
+  let activePositions: Position[] = [];
+  let closedTrades: TradeRecord[] = [];
 
-        const { label, tp, sl, roi, riskRewardRatio } =
-          strategyManager.executeStrategy(testedData);
+  // Iterate through data
+  // We need at least 500 candles for history as per original code
+  for (let index = 500; index < allData.length; index++) {
+    const testedData = allData.slice(index - 500, index);
+    const lastCandle = testedData[testedData.length - 1];
 
-        if (
-          !inPosition &&
-          label === Operation.BUY &&
-          tp > 0 &&
-          sl > 0 &&
-          roi >= 1.0066 &&
-          riskRewardRatio >= 1
-        ) {
-          console.log(testedData.at(-1)?.time, roi);
-          positions.push({
-            time: new Date(
-              testedData[testedData.length - 1].closeTime
-            ).toISOString(),
-            price: testedData[testedData.length - 1].close,
-            type: Operation.BUY,
-            targetPrice: tp,
-            sl,
-            roi,
-          });
-          inPosition = true;
-          return;
-        }
-        if (inPosition) {
-          const position = positions[positions.length - 1];
-          if (testedData[testedData.length - 1].high >= position.targetPrice) {
-            position.pnl =
-              ((position.targetPrice - position.price) / position.price) * 100;
-            position.pnl = parseFloat((position.pnl - FEES).toFixed(4));
-            position.status = "Closed with TP";
-            position.closeTime = testedData[testedData.length - 1].time;
-            position.period =
-              (new Date(testedData[testedData.length - 1].time).getTime() -
-                new Date(position.time).getTime()) /
-              (1000 * 60 * 60);
-            inPosition = false;
-          }
-          if (label === Operation.SELL) {
-            position.pnl =
-              ((testedData.at(-1)!.close - position.price) / position.price) *
-              100;
-            position.pnl = parseFloat((position.pnl - FEES).toFixed(4));
-            position.status = "Closed with SL";
-            position.closeTime = testedData[testedData.length - 1].time;
-            position.period =
-              (new Date(testedData[testedData.length - 1].time).getTime() -
-                new Date(position.time).getTime()) /
-              (1000 * 60 * 60);
-            inPosition = false;
-          }
-        }
+    // Safety check
+    if (!lastCandle) continue;
+
+    const currentPrice = lastCandle.close;
+    const currentTime = lastCandle.time;
+
+    // 1. Check Exits for active positions
+    // We iterate backwards to safely remove items
+    for (let i = activePositions.length - 1; i >= 0; i--) {
+      const pos = activePositions[i];
+      let shouldClose = false;
+      let closeReason = "";
+      let exitPrice = currentPrice;
+
+      // Calculate Unrealized PnL % (excluding fees for "positive" check)
+      const rawPnlPercent = ((currentPrice - pos.entryPrice) / pos.entryPrice) * 100;
+      const netPnlPercent_Current = rawPnlPercent - FEES;
+
+      // Condition 1: Take Profit (Limit Order)
+      // Check High price (assuming limit filled if price touched)
+      if (lastCandle.high >= pos.targetPrice) {
+        shouldClose = true;
+        closeReason = "TP (Limit)";
+        exitPrice = pos.targetPrice;
       }
-    });
-    const wins = positions.filter((position) => position.pnl > 0).length;
-    const losses = positions.filter((position) => position.pnl < 0).length;
-    const closedPositions = [
-      ...positions.filter((position) => position.pnl > 0),
-      ...positions.filter((position) => position.pnl < 0),
-    ];
-    closedPositions.forEach((position) => {
-      LogService.log(
-        position.time +
-          " " +
-          position.pnl +
-          " " +
-          position.status +
-          " " +
-          position.closeTime +
-          " from " +
-          position.price.toFixed(4) +
-          " to " +
-          position.targetPrice.toFixed(4) +
-          " pnl " +
-          position.pnl.toFixed(2) +
-          " in " +
-          position.period?.toFixed(2) +
-          " Hours "
-      );
-    });
-    stats.push({
-      asset: ASSET,
-      interval: interval.getInterval(),
-      totalPnl: calculateTotalCompoundedPnL(closedPositions).toFixed(2),
-      wins,
-      losses,
-      TARGET_ROI,
-    });
-  });
-  LogService.log("----------------------------------");
-  stats
-    /*     .sort((a, b) => {
-      const pnlDiff = b.totalPnl - a.totalPnl;
-      const winrateDiff =
-        (b.wins / (b.wins + b.losses)) * 100 -
-        (a.wins / (a.wins + a.losses)) * 100;
-      return pnlDiff || winrateDiff;
-    }) */
-    .forEach((stat) => {
-      LogService.log(
-        stat.asset +
-          " risk/reward ratio: " +
-          2 +
-          " on " +
-          interval.getInterval() +
-          " on target " +
-          stat.TARGET_ROI +
-          " Total PNL: " +
-          stat.totalPnl +
-          " winrate " +
-          ((stat.wins / (stat.wins + stat.losses)) * 100).toFixed(2) +
-          "% " +
-          stat.wins +
-          "/" +
-          stat.losses +
-          " in " +
-          period +
-          " days" +
-          " \n"
-      );
-    });
 
-  LogService.log(
-    !positions?.at(-1)?.status
-      ? positions?.at(-1)?.time + " at roi " + positions?.at(-1)?.roi
-      : ""
-  );
-}
+      // Removed "Strategy Sell Signal" as user requested FIXED limit exit only.
 
-mainWithFixedRoi();
+      if (shouldClose) {
+        // Execute Close
+        const finalRawPnl = ((exitPrice - pos.entryPrice) / pos.entryPrice);
+        const finalNetPnlPercent = (finalRawPnl * 100) - FEES;
 
-function calculateTotalCompoundedPnL(trades: any[]) {
-  let total = 1;
+        // Calculate returned capital
+        // Revenue = Investment * (1 + PnL_Flow) ? 
+        // Simple: Investment + Profit
+        // Profit = Investment * finalNetPnlPercent / 100
+        const profitValue = pos.investment * (finalNetPnlPercent / 100);
+        const returnAmount = pos.investment + profitValue;
 
-  for (const trade of trades) {
-    total *= 1 + trade.pnl / 100; // Convert percentage to multiplier
+        balance += returnAmount;
+
+        const durationHours = (new Date(currentTime).getTime() - new Date(pos.time).getTime()) / (1000 * 60 * 60);
+
+        closedTrades.push({
+          entryTime: pos.time,
+          exitTime: currentTime,
+          status: closeReason,
+          pnl: finalNetPnlPercent,
+          entryPrice: pos.entryPrice,
+          exitPrice: exitPrice,
+          duration: durationHours
+        });
+
+        activePositions.splice(i, 1);
+
+        const logMsg = `[CLOSE] ${closeReason} 
+        Start: ${pos.time} 
+        End:   ${currentTime} 
+        Dur:   ${durationHours.toFixed(2)}h 
+        PnL:   ${finalNetPnlPercent.toFixed(2)}% (Exit: ${exitPrice}) 
+        Bal:   $${balance.toFixed(2)}`;
+        console.log(logMsg);
+        LogService.log(logMsg);
+      }
+    }
+
+    // 2. Check Entries
+    const { label, tp } = strategyManager.executeStrategy(testedData);
+
+    if (label === Operation.BUY) {
+      // Sizing: 33.33% of Total Equity?
+      // Equity = Balance + Value of Positions
+      // Value of Positions ~ Investment (simplification, or Mark to Market?)
+      // Standard conservative: Equity = Balance + Sum(Investments)
+      const currentEquity = balance + activePositions.reduce((sum, p) => sum + p.investment, 0);
+      const targetPositionSize = currentEquity * POSITION_SIZE_PERCENT;
+
+      if (balance >= targetPositionSize) {
+        // Enter
+        activePositions.push({
+          time: currentTime,
+          entryPrice: currentPrice,
+          targetPrice: tp,
+          investment: targetPositionSize,
+          amount: targetPositionSize / currentPrice
+        });
+
+        balance -= targetPositionSize;
+
+        const logMsg = `[BUY] Price: ${currentPrice} | TP: ${tp} | Invest: $${targetPositionSize.toFixed(2)}`;
+        console.log(logMsg);
+        LogService.log(logMsg);
+      }
+    }
   }
 
-  const totalPercentage = (total - 1) * 100;
-  return totalPercentage;
+  // Summary
+  console.log("\n----------------------------------");
+  console.log("BACKTEST COMPLETE");
+  console.log("----------------------------------");
+
+  const wins = closedTrades.filter(t => t.pnl > 0).length;
+  const losses = closedTrades.filter(t => t.pnl <= 0).length;
+  const totalTrades = closedTrades.length;
+  const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
+
+  // Final Equity (mark to market open positions?)
+  // Let's just sum Balance + Invested (ignoring unrealized PnL of open positions for safety, or simpler)
+  const finalEquity = balance + activePositions.reduce((sum, p) => sum + p.investment, 0); // Simplified
+  const totalReturn = ((finalEquity - INITIAL_CAPITAL) / INITIAL_CAPITAL) * 100;
+
+  const summary = `
+  Capital: $${INITIAL_CAPITAL}
+  Final Equity: $${finalEquity.toFixed(2)}
+  Total Return: ${totalReturn.toFixed(2)}%
+  Trades: ${totalTrades} (Wins: ${wins}, Losses: ${losses})
+  Win Rate: ${winRate.toFixed(2)}%
+  Open Positions: ${activePositions.length}
+  `;
+
+  console.log(summary);
+  LogService.log(summary);
+
+  if (activePositions.length > 0) {
+    console.log("Open Positions Details:");
+    activePositions.forEach(p => console.log(`[${p.time}] Entry: ${p.entryPrice}, TP: ${p.targetPrice}, Invest: ${p.investment.toFixed(2)}`));
+  }
 }
+
+main();

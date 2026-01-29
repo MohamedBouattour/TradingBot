@@ -50,18 +50,18 @@ export class MarketService {
     const memUsage = process.memoryUsage();
     const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
     const heapTotalMB = memUsage.heapTotal / 1024 / 1024;
-    
+
     // If heap usage is over 150MB, aggressively clean cache
     if (heapUsedMB > 150) {
       console.warn(`High memory usage detected: ${heapUsedMB.toFixed(2)}MB. Cleaning cache aggressively.`);
       this.aggressiveCleanCache();
-      
+
       // Force garbage collection if available
       if (global.gc) {
         global.gc();
       }
     }
-    
+
     // Log memory stats periodically (every 5 minutes)
     if (Math.random() < 0.1) { // 10% chance
       console.log(`Memory usage: ${heapUsedMB.toFixed(2)}MB / ${heapTotalMB.toFixed(2)}MB, Cache size: ${this.candleCache.size}`);
@@ -75,7 +75,7 @@ export class MarketService {
     endTime?: number
   ): Promise<Candle[]> {
     const cacheKey = `${market}-${tickInterval}-${limit}-${endTime || 'latest'}`;
-    
+
     // Check for existing request for the same data
     const existingRequest = this.requestQueue.get(cacheKey);
     if (existingRequest && (Date.now() - existingRequest.timestamp < 5000)) {
@@ -101,7 +101,7 @@ export class MarketService {
     this.cleanCache();
 
     const requestPromise = this.performFetch(market, tickInterval, limit, endTime, cacheKey);
-    
+
     // Add to request queue with automatic cleanup
     this.requestQueue.set(cacheKey, {
       promise: requestPromise,
@@ -130,9 +130,8 @@ export class MarketService {
 
     while (attempt < this.MAX_RETRIES) {
       try {
-        const url = `https://api.binance.com/api/v1/klines?symbol=${market}&interval=${tickInterval}&limit=${
-          limit + 1
-        }${endTime ? "&endTime=" + endTime : ""}`;
+        const url = `https://api.binance.com/api/v1/klines?symbol=${market}&interval=${tickInterval}&limit=${limit + 1
+          }${endTime ? "&endTime=" + endTime : ""}`;
 
         const response = await fetch(url);
 
@@ -149,7 +148,7 @@ export class MarketService {
 
         const rawData = (await response.json()) as string[][];
         const candleData = convertStringToNumbers(rawData);
-        
+
         // Only cache if we have space and data is valid
         if (this.candleCache.size < this.MAX_CACHE_SIZE && candleData.length > 0) {
           this.candleCache.set(cacheKey, {
@@ -159,22 +158,22 @@ export class MarketService {
             lastAccessed: Date.now()
           });
         }
-        
+
         return candleData;
-        
+
       } catch (error: any) {
         lastError = error;
         attempt++;
-        
+
         if (attempt >= this.MAX_RETRIES) {
           console.error(`Failed to fetch candlestick data after ${this.MAX_RETRIES} retries: ${error.message}`);
           break;
         }
-        
+
         const backoffDelay = this.BASE_RETRY_DELAY * Math.pow(1.5, attempt - 1);
         const jitter = Math.random() * 500;
         const totalDelay = Math.min(backoffDelay + jitter, 15000); // Max 15 seconds
-        
+
         console.warn(`Attempt ${attempt} failed: ${error.message}. Retrying in ${totalDelay}ms`);
         await delay(totalDelay);
       }
@@ -185,14 +184,14 @@ export class MarketService {
 
   private static cleanCache() {
     const now = Date.now();
-    
+
     // Remove expired entries first
     for (const [key, value] of this.candleCache.entries()) {
       if (now - value.timestamp > this.CACHE_TTL * 1.5) {
         this.candleCache.delete(key);
       }
     }
-    
+
     // If still over limit, use LRU eviction
     if (this.candleCache.size > this.MAX_CACHE_SIZE) {
       const entries = Array.from(this.candleCache.entries())
@@ -202,7 +201,7 @@ export class MarketService {
           const bScore = b[1].lastAccessed + (b[1].accessCount * 1000);
           return aScore - bScore;
         });
-      
+
       const toRemove = Math.ceil((this.candleCache.size - this.MAX_CACHE_SIZE) * 1.5); // Remove extra
       entries.slice(0, toRemove).forEach(([key]) => {
         this.candleCache.delete(key);
@@ -213,11 +212,11 @@ export class MarketService {
   private static aggressiveCleanCache() {
     // Keep only the most recently accessed entries
     const keepCount = Math.floor(this.MAX_CACHE_SIZE / 2);
-    
+
     if (this.candleCache.size > keepCount) {
       const entries = Array.from(this.candleCache.entries())
         .sort((a, b) => b[1].lastAccessed - a[1].lastAccessed);
-      
+
       // Clear all and re-add only the most recent ones
       this.candleCache.clear();
       entries.slice(0, keepCount).forEach(([key, value]) => {
@@ -239,7 +238,7 @@ export class MarketService {
     this.candleCache.clear();
     this.requestQueue.clear();
     // Suppress log during tests to reduce memory usage
-    if (process.env.NODE_ENV !== 'test' && !process.env.JEST_WORKER_ID) {
+    if (process.env['NODE_ENV'] !== 'test' && !process.env['JEST_WORKER_ID']) {
       console.log('MarketService cache cleared');
     }
   }
